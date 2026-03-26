@@ -120,14 +120,14 @@ export default function LoginScreen({ onLogin }: LoginProps) {
       <StatusBar barStyle="light-content" backgroundColor={COLORS.bgDark} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{flex: 1}}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <ScrollView
           contentContainerStyle={{flexGrow: 1}}
           keyboardShouldPersistTaps="handled"
           style={{flex: 1}}>
-          <View style={styles.keyboardInner}>
+          <View style={[styles.keyboardInner, { flex: 1 }]}>
             {/* Logo / Brand Section */}
             <Animated.View
               style={[
@@ -169,7 +169,6 @@ export default function LoginScreen({ onLogin }: LoginProps) {
                   <Text style={globalStyles.label}>Email Address</Text>
                 </TouchableOpacity>
                 <View
-                  pointerEvents="box-none"
                   style={[
                     styles.inputWrapper,
                     emailFocused && styles.inputWrapperFocused,
@@ -200,7 +199,6 @@ export default function LoginScreen({ onLogin }: LoginProps) {
                   <Text style={globalStyles.label}>Password</Text>
                 </TouchableOpacity>
                 <View
-                  pointerEvents="box-none"
                   style={[
                     styles.inputWrapper,
                     passwordFocused && styles.inputWrapperFocused,
@@ -381,11 +379,7 @@ const styles = StyleSheet.create({
   inputWrapperFocused: {
     borderColor: COLORS.inputFocusBorder,
     backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
+    // Removed elevation and shadow to prevent flicker on Android during focus
   },
   inputIcon: {
     fontSize: 16,
