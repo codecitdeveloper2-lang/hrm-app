@@ -1,12 +1,26 @@
 // User types
 export interface User {
   id: string;
+  _id?: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
-  role: 'admin' | 'manager' | 'employee';
+  role: 'admin' | 'manager' | 'employee' | 'hr';
   avatar?: string;
   department?: string;
+  designation?: string;
   joinDate?: string;
+  location?: string;
+  phone?: string;
+  workingHours?: {
+    startTime: string;
+    endTime: string;
+    weeklyOff: string[];
+  };
+  accessToken?: string;
+  refreshToken?: string;
+  sessionId?: string;
 }
 
 // Auth types
@@ -57,6 +71,32 @@ export interface Schedule {
   day: string;
 }
 
+// Reimbursement types
+export type ReimbursementStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export interface ReimbursementAttachment {
+  fileName: string;
+  fileUrl: string;
+}
+
+export interface Reimbursement {
+  _id: string;
+  employeeId: string;
+  employeeName: string;
+  reimbursementTypeId: string;
+  reimbursementType: string;
+  title: string;
+  description: string;
+  amount: number;
+  expenseDate: string;
+  status: ReimbursementStatus;
+  attachments: ReimbursementAttachment[];
+  approval?: {
+    rejectionReason?: string;
+  };
+  rejectionReason?: string;
+}
+
 // Navigation types
 export type RootStackParamList = {
   Login: undefined;
@@ -65,4 +105,5 @@ export type RootStackParamList = {
   Attendance: undefined;
   Schedule: undefined;
   Leave: undefined;
+  Reimbursement: undefined;
 };

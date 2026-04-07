@@ -1,51 +1,23 @@
-// Simple store placeholder
-// Replace with Redux, Zustand, or Context API as needed
+import { configureStore } from '@reduxjs/toolkit';
+import { setupListeners } from '@reduxjs/toolkit/query';
+import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
+import { apiSlice } from './api/apiSlice';
+import authReducer from './slices/authSlice';
 
-import React, {createContext, useContext, useReducer} from 'react';
-import {User} from '../types';
-
-interface AppState {
-  user: User | null;
-  isAuthenticated: boolean;
-}
-
-type Action =
-  | {type: 'SET_USER'; payload: User}
-  | {type: 'LOGOUT'};
-
-const initialState: AppState = {
-  user: null,
-  isAuthenticated: false,
-};
-
-function appReducer(state: AppState, action: Action): AppState {
-  switch (action.type) {
-    case 'SET_USER':
-      return {...state, user: action.payload, isAuthenticated: true};
-    case 'LOGOUT':
-      return initialState;
-    default:
-      return state;
-  }
-}
-
-const AppContext = createContext<{
-  state: AppState;
-  dispatch: React.Dispatch<Action>;
-}>({
-  state: initialState,
-  dispatch: () => null,
+export const store = configureStore({
+  reducer: {
+    [apiSlice.reducerPath]: apiSlice.reducer,
+    auth: authReducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(apiSlice.middleware),
 });
 
-export function AppProvider({children}: {children: React.ReactNode}) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
-  return (
-    <AppContext.Provider value={{state, dispatch}}>
-      {children}
-    </AppContext.Provider>
-  );
-}
+setupListeners(store.dispatch);
 
-export function useAppStore() {
-  return useContext(AppContext);
-}
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+
+// Helper hooks for TypeScript
+export const useAppDispatch = () => useDispatch<AppDispatch>();
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;

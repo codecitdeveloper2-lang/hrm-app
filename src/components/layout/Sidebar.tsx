@@ -1,6 +1,9 @@
-import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, ScrollView} from 'react-native';
-import {COLORS} from '../../styles';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Dimensions } from 'react-native';
+import { COLORS } from '../../styles';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SIDEBAR_WIDTH = 250;
 
 interface SidebarItem {
   key: string;
@@ -12,17 +15,43 @@ interface SidebarProps {
   items: SidebarItem[];
   activeKey: string;
   onSelect: (key: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  isMobile?: boolean;
 }
 
-export default function Sidebar({items, activeKey, onSelect}: SidebarProps) {
+export default function Sidebar({ items, activeKey, onSelect, isOpen, onClose, isMobile }: SidebarProps) {
+  const slideAnim = useRef(new Animated.Value(isMobile ? -SIDEBAR_WIDTH : 0)).current;
+
+  useEffect(() => {
+    if (isMobile) {
+      Animated.timing(slideAnim, {
+        toValue: isOpen ? 0 : -SIDEBAR_WIDTH,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      slideAnim.setValue(0);
+    }
+  }, [isOpen, isMobile, slideAnim]);
+
+  const containerStyle = [
+    styles.container,
+    isMobile && styles.mobileContainer,
+    isMobile && { transform: [{ translateX: slideAnim }] },
+  ];
+
   return (
-    <View style={styles.container}>
+    <Animated.View style={containerStyle}>
       {/* Brand */}
       <View style={styles.brand}>
         <View style={styles.brandIcon}>
-          <Text style={styles.brandEmoji}>🔐</Text>
+          <Text style={styles.brandEmoji}>🚀</Text>
         </View>
-        <Text style={styles.brandText}>LoginApp</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.brandText}>CodecIT</Text>
+          <Text style={styles.brandSubtitle}>HR Management</Text>
+        </View>
       </View>
 
       {/* Navigation */}
@@ -43,41 +72,63 @@ export default function Sidebar({items, activeKey, onSelect}: SidebarProps) {
           );
         })}
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: 240,
+    width: SIDEBAR_WIDTH,
     backgroundColor: COLORS.bgMid,
     borderRightWidth: 1,
     borderRightColor: 'rgba(255,255,255,0.06)',
     paddingVertical: 24,
   },
+  mobileContainer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 100,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255,255,255,0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 15,
+  },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 32,
+    paddingHorizontal: 16,
+    marginBottom: 40,
   },
   brandIcon: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   brandEmoji: {
-    fontSize: 18,
+    fontSize: 16,
   },
   brandText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: COLORS.white,
+    letterSpacing: 0.3,
+  },
+  brandSubtitle: {
+    fontSize: 10,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
+    marginTop: -2,
   },
   nav: {
     flex: 1,

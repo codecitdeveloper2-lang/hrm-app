@@ -7,7 +7,6 @@ import {
   Dimensions,
 } from 'react-native';
 import {COLORS, globalStyles} from './styles';
-import {AppProvider} from './store';
 import LoginScreen from './pages/Login';
 import DashboardPage from './pages/Dashboard';
 import UsersPage from './pages/Users';
@@ -15,7 +14,8 @@ import AttendancePage from './pages/Attendance';
 import SchedulePage from './pages/Schedule';
 import LeavePage from './pages/Leave';
 import ProfilePage from './pages/Profile';
-import Sidebar from './components/layout/Sidebar';
+import ReimbursementPage from './pages/Reimbursement';
+import DashboardLayout from './components/layout/DashboardLayout';
 import MainLayout from './components/layout/MainLayout';
 
 const {width} = Dimensions.get('window');
@@ -26,15 +26,27 @@ const NAV_ITEMS = [
   {key: 'Attendance', label: 'Attendance', icon: '✅'},
   {key: 'Schedule', label: 'Schedule', icon: '📅'},
   {key: 'Leave', label: 'Leave', icon: '✉️'},
+  {key: 'Reimbursement', label: 'Reimbursements', icon: '💳'},
   {key: 'Profile', label: 'Profile', icon: '👤'},
 ];
 
+import { useCheckCorrectionQuery } from './store/api/apiSlice';
+import CorrectionModal from './components/attendance/CorrectionModal';
+
+import {useAppSelector, useAppDispatch} from './store';
+
 function AppContent() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const {isAuthenticated} = useAppSelector(state => state.auth);
   const [currentPage, setCurrentPage] = useState('Dashboard');
+  const { data: correctionData } = useCheckCorrectionQuery(undefined, {
+    skip: !isAuthenticated,
+    pollingInterval: 60000,
+  });
+
+  const requiresCorrection = correctionData?.success && correctionData?.data?.requiresLogoutCorrection;
 
   if (!isAuthenticated) {
-    return <LoginScreen onLogin={() => setIsAuthenticated(true)} />;
+    return <LoginScreen />;
   }
 
   const renderPage = () => {
@@ -44,32 +56,40 @@ function AppContent() {
       case 'Attendance': return <AttendancePage />;
       case 'Schedule': return <SchedulePage />;
       case 'Leave': return <LeavePage />;
-      case 'Profile': return <ProfilePage onLogout={() => setIsAuthenticated(false)} />;
+      case 'Reimbursement': return <ReimbursementPage />;
+      case 'Profile': return <ProfilePage />;
       default: return <DashboardPage />;
     }
   };
 
   return (
-    <View style={styles.mainContainer}>
-      <Sidebar 
-        items={NAV_ITEMS}
-        activeKey={currentPage}
-        onSelect={(key) => setCurrentPage(key)}
+    <DashboardLayout 
+      title={currentPage} 
+      activeMenu={currentPage} 
+      onMenuSelect={(key) => setCurrentPage(key)}>
+      {renderPage()}
+      <CorrectionModal 
+        isVisible={requiresCorrection} 
+        data={correctionData?.data} 
       />
-      <View style={styles.contentArea}>
-        {renderPage()}
-      </View>
-    </View>
+    </DashboardLayout>
   );
 }
 
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+
+import {Provider} from 'react-redux';
+import {store} from './store';
+
 export default function App() {
   return (
-    <AppProvider>
-      <MainLayout>
-        <AppContent />
-      </MainLayout>
-    </AppProvider>
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <MainLayout>
+          <AppContent />
+        </MainLayout>
+      </Provider>
+    </SafeAreaProvider>
   );
 }
 

@@ -15,15 +15,18 @@ import {
   ScrollView,
 } from 'react-native';
 import { COLORS, globalStyles } from '../../styles';
+import { useAppDispatch } from '../../store';
+import { setAuth } from '../../store/slices/authSlice';
+import { 
+  useLoginMutation, 
+  useGoogleLoginMutation, 
+  useForgotPasswordMutation 
+} from '../../store/api/apiSlice';
 import Button from '../../components/common/Button';
 
 const { width, height } = Dimensions.get('window');
 
-interface LoginProps {
-  onLogin?: () => void;
-}
-
-export default function LoginScreen({ onLogin }: LoginProps) {
+export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -32,7 +35,11 @@ export default function LoginScreen({ onLogin }: LoginProps) {
   
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
-  const [loading, setLoading] = useState(false);
+
+  const dispatch = useAppDispatch();
+  const [login, { isLoading: isLoginLoading }] = useLoginMutation();
+  const [googleLogin, { isLoading: isGoogleLoading }] = useGoogleLoginMutation();
+  const [forgotPassword, { isLoading: isForgotLoading }] = useForgotPasswordMutation();
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -43,56 +50,24 @@ export default function LoginScreen({ onLogin }: LoginProps) {
   const glowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Staggered entrance animations
+    // Entrance animations
     Animated.sequence([
-      // Logo animation
       Animated.parallel([
-        Animated.spring(logoScale, {
-          toValue: 1,
-          friction: 6,
-          tension: 80,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }),
+        Animated.spring(logoScale, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
       ]),
-      // Card animation
       Animated.parallel([
-        Animated.timing(cardFade, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.spring(cardSlide, {
-          toValue: 0,
-          friction: 8,
-          tension: 60,
-          useNativeDriver: true,
-        }),
+        Animated.timing(cardFade, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.spring(cardSlide, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
       ]),
     ]).start();
 
-    // Continuous glow pulse
+    // Pulse animation
     Animated.loop(
       Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
+        Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0, duration: 2000, useNativeDriver: true }),
       ]),
     ).start();
   }, [cardFade, cardSlide, fadeAnim, logoScale, slideAnim, glowAnim]);
@@ -102,13 +77,80 @@ export default function LoginScreen({ onLogin }: LoginProps) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      onLogin?.();
-    }, 1500);
+    
+    try {
+      const result: any = await login({
+        email: email.trim(),
+        password: password,
+      }).unwrap();
+
+      if (result.success) {
+        dispatch(setAuth({
+          user: {
+            id: result.data.user?.id || 'trial-user',
+            name: result.data.user?.name || 'John Doe',
+            email: result.data.user?.email || email,
+            role: result.data.user?.role || 'admin',
+            ...result.data.user
+          },
+          accessToken: result.data.accessToken,
+          refreshToken: result.data.refreshToken,
+        }));
+      } else {
+        Alert.alert('Login Failed', result.message || 'Invalid email or password');
+      }
+    } catch (error: any) {
+      console.error('Login Error:', error);
+      const errorMessage = error.data?.error?.message || error.data?.message || 'Unable to reach the server. Please check your connection.';
+      Alert.alert('Login Error', errorMessage);
+    }
   };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const result: any = await googleLogin({
+        idToken: "GOOGLE_OAUTH_TOKEN_TEST",
+      }).unwrap();
+
+      if (result.success) {
+        dispatch(setAuth({
+          user: {
+            id: result.data.user?.id || 'google-user',
+            name: result.data.user?.name || 'Google User',
+            email: result.data.user?.email || 'google@example.com',
+            role: result.data.user?.role || 'employee',
+            ...result.data.user
+          },
+          accessToken: result.data.accessToken,
+          refreshToken: result.data.refreshToken,
+        }));
+      } else {
+        Alert.alert('Google Login Failed', result.message || 'Unable to authenticate with Google');
+      }
+    } catch (error: any) {
+      console.error('Google Login Error:', error);
+      Alert.alert('Error', error.data?.message || 'Connection error.');
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert('Email Required', 'Please enter your email address first.');
+      return;
+    }
+
+    try {
+      const result: any = await forgotPassword(email.trim()).unwrap();
+      if (result.success) {
+        Alert.alert('OTP Sent', 'A recovery code has been sent to your email.');
+      }
+    } catch (error: any) {
+      console.error('Forgot Password Error:', error);
+      Alert.alert('Error', error.data?.message || 'Unable to process your request.');
+    }
+  };
+
+  const isLoading = isLoginLoading || isGoogleLoading || isForgotLoading;
 
   const glowOpacity = glowAnim.interpolate({
     inputRange: [0, 1],
@@ -231,7 +273,9 @@ export default function LoginScreen({ onLogin }: LoginProps) {
               </View>
 
               {/* Forgot Password */}
-              <TouchableOpacity style={styles.forgotContainer}>
+              <TouchableOpacity 
+                style={styles.forgotContainer}
+                onPress={handleForgotPassword}>
                 <Text style={styles.forgotText}>Forgot Password?</Text>
               </TouchableOpacity>
 
@@ -239,7 +283,7 @@ export default function LoginScreen({ onLogin }: LoginProps) {
               <Button
                 title="Sign In"
                 onPress={handleLogin}
-                loading={loading}
+                loading={isLoading}
                 icon={<Text style={styles.buttonArrow}>→ </Text>}
               />
 
@@ -252,9 +296,11 @@ export default function LoginScreen({ onLogin }: LoginProps) {
 
               {/* Social Buttons */}
               <View style={styles.socialRow}>
-                <TouchableOpacity style={styles.socialButton}>
+                <TouchableOpacity 
+                  style={styles.socialButton}
+                  onPress={handleGoogleLogin}>
                   <Image
-                    source={require('../../assets/google_logo.png')}
+                    source={require('../../assets/google_logo.jpg')}
                     style={styles.socialIcon}
                     resizeMode="contain"
                   />
@@ -265,27 +311,6 @@ export default function LoginScreen({ onLogin }: LoginProps) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Background orbs temporarily disabled for testing focus */}
-      {/* 
-      <View 
-        pointerEvents="none" 
-        style={[StyleSheet.absoluteFill, {zIndex: -10}]}>
-        <Animated.View
-          style={[
-            styles.bgOrb1,
-            { opacity: glowOpacity },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.bgOrb2,
-            { opacity: glowOpacity },
-          ]}
-        />
-        <View style={styles.bgOrb3} />
-      </View> 
-      */}
     </View>
   );
 }
@@ -379,7 +404,6 @@ const styles = StyleSheet.create({
   inputWrapperFocused: {
     borderColor: COLORS.inputFocusBorder,
     backgroundColor: 'rgba(108, 99, 255, 0.06)',
-    // Removed elevation and shadow to prevent flicker on Android during focus
   },
   inputIcon: {
     fontSize: 16,

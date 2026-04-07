@@ -1,68 +1,436 @@
-import React from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
-import {COLORS, globalStyles} from '../../styles';
-import Header from '../../components/layout/Header';
-import Table from '../../components/common/Table';
+import React, {useState} from 'react';
+import {View, Text, StyleSheet, ScrollView, useWindowDimensions, TextInput, TouchableOpacity, Alert} from 'react-native';
+import {COLORS} from '../../styles';
+import StatusCard from '../../components/dashboard/StatusCard';
+import StatCard from '../../components/dashboard/StatCard';
 import Button from '../../components/common/Button';
+import { 
+  useGetClockInStatusQuery, 
+  useGetRecentActivityQuery,
+} from '../../store/api/apiSlice';
+import CorrectionModal from '../../components/attendance/CorrectionModal';
+import AttendanceStats from '../../components/attendance/AttendanceStats';
 
 export default function AttendancePage() {
-  const columns = [
-    {key: 'date', title: 'Date', width: 100},
-    {key: 'checkIn', title: 'Check In', width: 90},
-    {key: 'checkOut', title: 'Check Out', width: 90},
-    {key: 'status', title: 'Status', width: 90},
-  ];
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const isResponsive = width < 1024;
+  
+  const { data: statusData } = useGetClockInStatusQuery(undefined);
+  const { data: activityData } = useGetRecentActivityQuery({ 
+    date: new Date().toISOString().split('T')[0],
+  });
 
-  const data = [
-    {date: '25 Mar', checkIn: '09:00 AM', checkOut: '06:05 PM', status: 'Present'},
-    {date: '24 Mar', checkIn: '08:55 AM', checkOut: '06:10 PM', status: 'Present'},
-    {date: '23 Mar', checkIn: '09:15 AM', checkOut: '06:00 PM', status: 'Late'},
-    {date: '22 Mar', checkIn: '-', checkOut: '-', status: 'Absent'},
-    {date: '21 Mar', checkIn: '08:45 AM', checkOut: '05:50 PM', status: 'Present'},
+  // Current Date for header
+  const headerDateString = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  const todayShortDate = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  });
+
+  // Derived values from API response
+  const d = statusData?.data;
+  const isClockedIn = d?.isClockedIn ?? false;
+  const checkInTime = d?.currentSession?.checkIn?.time
+    ? new Date(d.currentSession.checkIn.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+    : '-';
+  const sessionDuration = d?.currentSession?.durationString ?? '0h 0m';
+  const totalDuration = d?.totalDurationString ?? '0h 0m';
+  const totalBreakCount = d?.totalBreakCount ?? 0;
+  const totalBreakDuration = d?.totalBreakDurationString ?? '0S';
+  const monthlyPresentDays = d?.monthlyPresentDays ?? 0;
+  const monthlyWorkingDays = d?.monthlyWorkingDaysSoFar ?? 0;
+  const monthlyTarget = d?.monthlyTargetHours ?? 209;
+  const monthlyPercentage = d?.monthlyAttendancePercentage ?? 14.29;
+
+  const ATTENDANCE_STATS = [
+    {
+      title: "Today's Hours",
+      value: sessionDuration,
+      accentColor: '#10B981',
+      icon: '⏱️',
+    },
+    {
+      title: 'Total Breaks',
+      value: `${totalBreakDuration} (${totalBreakCount})`,
+      accentColor: '#3B82F6',
+      icon: '☕',
+    },
+    {
+      title: 'Monthly Present',
+      value: `${monthlyPresentDays}`,
+      accentColor: '#8B5CF6',
+      icon: '🗓️',
+    },
+    {
+      title: 'Performance',
+      value: `${monthlyPercentage}%`,
+      accentColor: '#F59E0B',
+      icon: '🕒',
+    },
   ];
 
   return (
-    <View style={globalStyles.screenContainer}>
-      <Header 
-        title="Attendance" 
-        subtitle="Your daily check-in and out logs"
-        rightAction={<Button title="Export PDF" variant="secondary" size="sm" onPress={() => {}} />}
-      />
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.summaryRow}>
-          <SummaryCard label="On Time" value="18" color="#4ECDC4" />
-          <SummaryCard label="Late" value="2" color="#FFE66D" />
-          <SummaryCard label="Absent" value="1" color="#FF6B6B" />
+    <>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}>
+      
+      {/* Header with Date */}
+      <View style={styles.header}>
+        <Text style={[styles.title, isMobile && {fontSize: 22}]}>Attendance</Text>
+        {!isMobile && <Text style={styles.headerDate}>{headerDateString}</Text>}
+      </View>
+
+      <StatusCard />
+
+      {/* Attendance Stats Cards */}
+      <View style={styles.statsRow}>
+        {ATTENDANCE_STATS.map((stat, index) => (
+          <View key={index} style={{ width: isMobile ? '100%' : isResponsive ? '48%' : '24%', minWidth: isMobile ? '100%' : 150 }}>
+            <StatCard {...stat} />
+          </View>
+        ))}
+      </View>
+
+      <View style={[styles.bottomLayout, isResponsive && styles.columnLayout]}>
+        {/* Today's Details Section */}
+        <View style={styles.detailsSection}>
+          <Text style={styles.sectionTitle}>Today's Details</Text>
+          <View style={styles.detailsCard}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Date</Text>
+              <Text style={styles.detailValue}>{headerDateString}</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Status</Text>
+              <View style={[styles.statusBadge, isClockedIn && styles.statusBadgeActive]}>
+                <Text style={[styles.statusBadgeText, isClockedIn && styles.statusBadgeTextActive]}>
+                  {isClockedIn ? 'Present' : 'Absent'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Last Action</Text>
+              <Text style={styles.detailValue}>{checkInTime}</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Net Working Time</Text>
+              <Text style={[styles.detailValue, {color: '#3B82F6'}]}>{d?.netDurationString ?? '0h 0m'}</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Break Duration</Text>
+              <Text style={[styles.detailValue, {color: '#F59E0B'}]}>{totalBreakDuration} ({totalBreakCount})</Text>
+            </View>
+          </View>
         </View>
 
-        <View style={globalStyles.glassCard}>
-          <Text style={styles.tableTitle}>Monthly Log - March</Text>
-          <Table columns={columns} data={data} />
+        {/* This Week's Summary Section */}
+        <View style={styles.summarySection}>
+          <Text style={styles.sectionTitle}>This Week's Summary</Text>
+          <View style={styles.detailsCard}>
+             <View style={styles.summaryHeader}>
+               <Text style={styles.summaryHeaderText}>DAY</Text>
+               <Text style={styles.summaryHeaderText}>HOURS</Text>
+             </View>
+            {[
+              {day: 'Mon', date: todayShortDate, time: d?.netDurationString ?? '0h 0m', active: true},
+              {day: 'Tue', date: 'Mar 31', time: '-', active: false},
+            ].map((item, index, arr) => (
+              <React.Fragment key={item.day}>
+                <View style={styles.weekItem}>
+                  <View style={styles.weekItemLeft}>
+                    <View style={[styles.dayCircle, item.active && styles.dayCircleActive]}>
+                       <Text style={[styles.dayInitial, item.active && styles.dayInitialActive]}>{item.day[0]}</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.dayName}>{item.day}</Text>
+                      <Text style={styles.dayDate}>{item.date}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.weekTime}>{item.time}</Text>
+                </View>
+                {index < arr.length - 1 && <View style={styles.divider} />}
+              </React.Fragment>
+            ))}
+          </View>
         </View>
-      </ScrollView>
-    </View>
+      </View>
+
+      {/* Recent Activity Section */}
+      <View style={styles.activitySection}>
+        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <View style={styles.detailsCard}>
+          {activityData?.data?.length > 0 ? (
+            activityData.data.map((item: any, index: number) => (
+              <View key={item._id || index}>
+                <View style={styles.activityItem}>
+                  <View style={styles.activityHeader}>
+                    <Text style={styles.activityDate}>
+                      {new Date(item.shiftDate || item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                    <View style={[styles.statusBadge, item.status === 'present' && styles.statusBadgeActive]}>
+                      <Text style={[styles.statusBadgeText, item.status === 'present' && styles.statusBadgeTextActive]}>
+                        {item.status}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.activityDetails}>
+                    <View style={styles.activityTimeBox}>
+                      <Text style={styles.activityTimeLabel}>IN</Text>
+                      <Text style={styles.activityTimeValue}>
+                        {item.checkIn?.time ? new Date(item.checkIn.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                      </Text>
+                    </View>
+                    <View style={styles.activityTimeBox}>
+                      <Text style={styles.activityTimeLabel}>OUT</Text>
+                      <Text style={styles.activityTimeValue}>
+                        {item.checkOut?.time ? new Date(item.checkOut.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                      </Text>
+                    </View>
+                    <View style={styles.activityTimeBox}>
+                      <Text style={styles.activityTimeLabel}>DURATION</Text>
+                      <Text style={[styles.activityTimeValue, {color: COLORS.primary}]}>
+                        {item.durationString || (item.durationMs ? `${Math.floor(item.durationMs / 3600000)}h ${Math.floor((item.durationMs % 3600000) / 60000)}m` : '--:--')}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                {index < activityData.data.length - 1 && <View style={styles.divider} />}
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No recent activity found.</Text>
+          )}
+        </View>
+      </View>
+
+    </ScrollView>
+    {d?.requiresLogoutCorrection && d?.incompleteShift && (
+      <CorrectionModal 
+        isVisible={true} 
+        data={{
+          shiftId: d.incompleteShift.shiftId || d.incompleteShift._id,
+          shiftDate: d.incompleteShift.shiftDate,
+          loginTime: d.incompleteShift.loginTime || d.incompleteShift.checkIn?.time,
+        }} 
+      />
+    )}
+    </>
   );
 }
 
-const SummaryCard = ({label, value, color}: {label: string, value: string, color: string}) => (
-  <View style={[styles.summaryCard, {borderColor: color + '30'}]}>
-    <Text style={[styles.summaryValue, {color}]}>{value}</Text>
-    <Text style={styles.summaryLabel}>{label}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  content: {padding: 24},
-  summaryRow: {flexDirection: 'row', gap: 12, marginBottom: 24},
-  summaryCard: {
+  container: {
     flex: 1,
-    backgroundColor: COLORS.bgMid,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
+  },
+  content: {
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#E2E8F0',
+  },
+  headerDate: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+  },
+  bottomLayout: {
+    flexDirection: 'row',
+    marginTop: 32,
+    gap: 24,
+  },
+  columnLayout: {
+    flexDirection: 'column',
+  },
+  detailsSection: {
+    flex: 3,
+  },
+  summarySection: {
+    flex: 2,
+  },
+  correctionSection: {
+    marginTop: 32,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 16,
+    letterSpacing: 0.3,
+  },
+  detailsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  detailValue: {
+    fontSize: 15,
+    color: '#1E293B',
+    fontWeight: '700',
+  },
+  statusBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  statusBadgeActive: {
+    backgroundColor: '#DCFCE7',
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  statusBadgeTextActive: {
+    color: '#166534',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 12,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  summaryHeaderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  weekItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  weekItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dayCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  summaryValue: {fontSize: 20, fontWeight: '700'},
-  summaryLabel: {fontSize: 12, color: COLORS.textSecondary, marginTop: 4},
-  tableTitle: {fontSize: 16, fontWeight: '600', color: COLORS.white, marginBottom: 16},
+  dayCircleActive: {
+    backgroundColor: '#3B82F6',
+  },
+  dayInitial: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  dayInitialActive: {
+    color: '#FFFFFF',
+  },
+  dayName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  dayDate: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  weekTime: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  activitySection: {
+    marginTop: 32,
+  },
+  activityItem: {
+    paddingVertical: 8,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  activityDate: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  activityDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+  },
+  activityTimeBox: {
+    alignItems: 'center',
+  },
+  activityTimeLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#94A3B8',
+    marginBottom: 4,
+  },
+  activityTimeValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#94A3B8',
+    fontSize: 14,
+    paddingVertical: 20,
+  },
+
 });
