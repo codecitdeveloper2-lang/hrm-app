@@ -30,6 +30,7 @@ export default function LeavePage() {
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'cancelled'>('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
 
   // API Hooks
   const { data: statsResp, isLoading: statsLoading, refetch: refetchStats } = useGetMyStatsQuery(undefined);
@@ -178,69 +179,88 @@ export default function LeavePage() {
             </View>
 
             {/* Application History */}
-            <View style={styles.section}>
-                <View style={styles.rowBetween}>
-                    <Text style={styles.sectionTitle}>History</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar}>
-                        {['all', 'pending', 'approved', 'rejected', 'cancelled'].map((f) => (
-                            <TouchableOpacity 
-                                key={f} 
-                                style={[styles.filterChip, statusFilter === f && styles.filterChipActive]}
-                                onPress={() => setStatusFilter(f as any)}
-                            >
-                                <Text style={[styles.filterChipText, statusFilter === f && styles.filterChipTextActive]}>
-                                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+            <View style={[styles.section, styles.historyContainer]}>
+                <View style={[styles.historyHeader, { zIndex: 10 }]}>
+                    <Text style={styles.historyTitle}>My Requests</Text>
+                    <View style={styles.dropdownContainer}>
+                        <TouchableOpacity 
+                            style={styles.dropdownButton}
+                            onPress={() => setIsDropdownVisible(!isDropdownVisible)}
+                        >
+                            <Text style={styles.dropdownButtonIcon}>▽</Text>
+                            <Text style={styles.dropdownButtonText}>
+                                {statusFilter === 'all' ? 'All Status' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                            </Text>
+                            <Text style={styles.dropdownButtonIconArrow}>^</Text>
+                        </TouchableOpacity>
+                        
+                        {isDropdownVisible && (
+                            <View style={styles.dropdownMenu}>
+                                {['all', 'pending', 'approved', 'rejected', 'cancelled'].map((f) => (
+                                    <TouchableOpacity 
+                                        key={f} 
+                                        style={[styles.dropdownMenuItem, statusFilter === f && styles.dropdownMenuItemActive]}
+                                        onPress={() => {
+                                            setStatusFilter(f as any);
+                                            setIsDropdownVisible(false);
+                                        }}
+                                    >
+                                        <Text style={[styles.dropdownMenuItemText, statusFilter === f && styles.dropdownMenuItemTextActive]}>
+                                            {f === 'all' ? 'All Status' : f.charAt(0).toUpperCase() + f.slice(1)}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+                    </View>
                 </View>
                 
-                <View style={styles.requestList}>
-                    {requests.map((request: any) => {
-                        const isPending = request.status === 'pending';
-                        const statusColors: any = {
-                            pending: { bg: '#FFFBEB', text: '#D97706', dot: '#F59E0B' },
-                            approved: { bg: '#F0FDF4', text: '#16A34A', dot: '#22C55E' },
-                            rejected: { bg: '#FEF2F2', text: '#DC2626', dot: '#EF4444' },
-                            cancelled: { bg: '#F8FAFC', text: '#64748B', dot: '#94A3B8' }
-                        };
-                        const conf = statusColors[request.status] || statusColors.cancelled;
-                        
-                        return (
-                            <View key={request._id} style={styles.requestItem}>
-                                <View style={styles.requestItemLeft}>
-                                    <View style={styles.requestIconCircle}>
-                                        <Text style={styles.requestItemIcon}>📄</Text>
+                <ScrollView style={{ maxHeight: 310 }} nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                    <View style={styles.requestListBlock}>
+                        {requests.map((request: any) => {
+                            const isPending = request.status === 'pending';
+                            const statusColors: any = {
+                                pending: { bg: '#FFFBEB', text: '#D97706', icon: '⏳' },
+                                approved: { bg: '#F0FDF4', text: '#16A34A', icon: '✓' },
+                                rejected: { bg: '#FEF2F2', text: '#DC2626', icon: '✕' },
+                                cancelled: { bg: '#F1F5F9', text: '#64748B', icon: '⃠' }
+                            };
+                            const conf = statusColors[request.status] || statusColors.cancelled;
+                            
+                            return (
+                                <View key={request._id} style={styles.requestCard}>
+                                    <View style={styles.requestCardLeft}>
+                                        <View style={styles.requestCardIconBox}>
+                                            <Text style={styles.requestCardIcon}>📄</Text>
+                                        </View>
+                                        <View style={{flex: 1}}>
+                                            <Text style={styles.requestCardType}>{request.leaveType || 'Leave'}</Text>
+                                            <Text style={styles.requestCardMeta}>
+                                                {request.numberOfDays} day{request.numberOfDays > 1 ? 's' : ''}  •  {new Date(request.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </Text>
+                                            <Text style={styles.requestCardReason} numberOfLines={1}>{request.reason || request.leaveType}</Text>
+                                        </View>
                                     </View>
-                                    <View style={{flex: 1}}>
-                                        <Text style={styles.requestItemType}>{request.leaveType}</Text>
-                                        <Text style={styles.requestItemMeta}>
-                                            {request.numberOfDays} days  •  {new Date(request.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                        </Text>
-                                        <Text style={styles.requestItemReason} numberOfLines={1}>{request.reason}</Text>
+                                    <View style={styles.requestCardRight}>
+                                        <View style={[styles.statusPill, { backgroundColor: conf.bg }]}>
+                                            <Text style={[styles.statusPillText, { color: conf.text }]}>{conf.icon}  {request.status.charAt(0).toUpperCase() + request.status.slice(1)}</Text>
+                                        </View>
+                                        {isPending && (
+                                            <TouchableOpacity onPress={() => handleCancelLeave(request._id)} disabled={isCancelling} style={styles.cancelActionBtn}>
+                                                <Text style={styles.cancelActionLink}>Cancel</Text>
+                                            </TouchableOpacity>
+                                        )}
                                     </View>
                                 </View>
-                                <View style={styles.requestItemRight}>
-                                    <View style={[styles.statusTag, { backgroundColor: conf.bg, borderColor: conf.dot + '20' }]}>
-                                        <View style={[styles.statusPoint, { backgroundColor: conf.dot }]} />
-                                        <Text style={[styles.statusTagText, { color: conf.text }]}>{request.status.toUpperCase()}</Text>
-                                    </View>
-                                    {isPending && (
-                                        <TouchableOpacity onPress={() => handleCancelLeave(request._id)} disabled={isCancelling}>
-                                            <Text style={styles.cancelLink}>Cancel</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
+                            );
+                        })}
+                        {requests.length === 0 && !leavesLoading && (
+                            <View style={styles.emptyStateContainerBlock}>
+                                <Text style={styles.emptyTextBlock}>No requests found.</Text>
                             </View>
-                        );
-                    })}
-                    {requests.length === 0 && !leavesLoading && (
-                        <View style={styles.emptyStateContainer}>
-                            <Text style={styles.emptyText}>No requests match this filter.</Text>
-                        </View>
-                    )}
-                </View>
+                        )}
+                    </View>
+                </ScrollView>
             </View>
 
             {/* Quick Policies View */}
@@ -358,44 +378,118 @@ const styles = StyleSheet.create({
   breakdownValue: { fontSize: 20, fontWeight: '800', color: '#1E293B' },
   progressBar: { height: 8, backgroundColor: '#F1F5F9', borderRadius: 4, marginTop: 18, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
+  emptyText: { color: 'rgba(255,255,255,0.5)', fontSize: 14 },
 
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  filterBar: { marginLeft: 10 },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  filterChipActive: { backgroundColor: '#6C63FF', borderColor: '#6C63FF' },
-  filterChipText: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '700' },
-  filterChipTextActive: { color: '#FFFFFF' },
-
-  requestList: { gap: 14 },
-  requestItem: {
+  historyContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 8,
+    padding: 16,
+  },
+  historyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 16,
   },
-  requestItemLeft: { flexDirection: 'row', gap: 14, flex: 1 },
-  requestIconCircle: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-  requestItemIcon: { fontSize: 22 },
-  requestItemType: { fontSize: 16, fontWeight: '700', color: '#1E293B' },
-  requestItemMeta: { fontSize: 13, color: '#64748B', marginTop: 3 },
-  requestItemReason: { fontSize: 11, color: '#94A3B8', marginTop: 5 },
-  requestItemRight: { alignItems: 'flex-end', gap: 10 },
-  statusTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  statusPoint: { width: 6, height: 6, borderRadius: 3 },
-  statusTagText: { fontSize: 10, fontWeight: '800' },
-  cancelLink: { color: COLORS.error, fontSize: 12, fontWeight: '700' },
-  emptyStateContainer: { padding: 40, alignItems: 'center' },
-  emptyText: { color: 'rgba(255,255,255,0.5)', fontSize: 14 },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  dropdownContainer: {
+    position: 'relative',
+    zIndex: 100,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+    gap: 8,
+  },
+  dropdownButtonIcon: { color: '#3B82F6', fontSize: 13, marginTop: -2 },
+  dropdownButtonIconArrow: { color: '#3B82F6', fontSize: 13, marginLeft: 2, fontWeight: '700' },
+  dropdownButtonText: {
+    color: '#3B82F6',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingVertical: 8,
+    width: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  dropdownMenuItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  dropdownMenuItemActive: {
+    backgroundColor: '#F0F5FF',
+  },
+  dropdownMenuItemText: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  dropdownMenuItemTextActive: {
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
+  requestListBlock: { gap: 12 },
+  requestCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  requestCardLeft: { flexDirection: 'row', gap: 14, flex: 1 },
+  requestCardIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  requestCardIcon: { fontSize: 20 },
+  requestCardType: { fontSize: 15, fontWeight: '700', color: '#1E293B', marginBottom: 2 },
+  requestCardMeta: { fontSize: 12, color: '#64748B', marginBottom: 4 },
+  requestCardReason: { fontSize: 12, color: '#94A3B8' },
+  requestCardRight: { alignItems: 'flex-end', gap: 10 },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusPillText: { fontSize: 11, fontWeight: '600' },
+  cancelActionBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  cancelActionLink: { color: COLORS.error, fontSize: 12, fontWeight: '600' },
+  emptyStateContainerBlock: { padding: 40, alignItems: 'center' },
+  emptyTextBlock: { color: '#94A3B8', fontSize: 14 },
 
   policyRow: {
     flexDirection: 'row',
