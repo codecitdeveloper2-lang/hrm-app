@@ -121,10 +121,15 @@ export default function ApplyLeaveModal({ isVisible, onClose }: ApplyLeaveModalP
 
     try {
       // 1:1 Payload match with Web CRM
+      const toISO = (dateStr: string) => {
+        const [month, day, year] = dateStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00.000Z`;
+      };
+
       const payload = {
         leaveType,
-        startDate,
-        endDate: isHalfDay ? startDate : endDate,
+        startDate: toISO(startDate),
+        endDate: toISO(isHalfDay ? startDate : endDate),
         halfDay: isHalfDay,
         halfDayType: isHalfDay ? halfDayType : undefined,
         reason: reason.trim()

@@ -8,15 +8,19 @@ import {
     TextInput, 
     ScrollView, 
     ActivityIndicator, 
-    Alert 
+    Alert,
+    Platform,
+    Image,
+    ImageBackground
 } from 'react-native';
-import { COLORS } from '../../styles';
+
+import { launchImageLibrary } from 'react-native-image-picker';
+
 import { 
     useGetReimbursementTypesQuery, 
     useCreateReimbursementMutation, 
     useUpdateReimbursementMutation 
 } from '../../store/api/apiSlice';
-import { formatCurrency } from '../../utils';
 
 interface NewReimbursementModalProps {
     isVisible: boolean;
@@ -27,40 +31,140 @@ interface NewReimbursementModalProps {
 export default function NewReimbursementModal({ isVisible, onClose, editingRequest }: NewReimbursementModalProps) {
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState('');
     const [description, setDescription] = useState('');
     const [typeId, setTypeId] = useState('');
     const [attachments, setAttachments] = useState<any[]>([]);
 
-    const { data: typesResp, isLoading: typesLoading } = useGetReimbursementTypesQuery(undefined);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+    const { data: typesResp } = useGetReimbursementTypesQuery(undefined);
     const [createReimbursement, { isLoading: isCreating }] = useCreateReimbursementMutation();
     const [updateReimbursement, { isLoading: isUpdating }] = useUpdateReimbursementMutation();
 
     useEffect(() => {
-        if (editingRequest) {
-            setTitle(editingRequest.title);
-            setAmount(editingRequest.amount.toString());
-            setDate(new Date(editingRequest.expenseDate).toISOString().split('T')[0]);
-            setDescription(editingRequest.description || '');
-            setTypeId(editingRequest.reimbursementTypeId || editingRequest.reimbursementType);
-            setAttachments(editingRequest.attachments || []);
-        } else {
-            resetForm();
+        console.log('NewReimbursementModal Mounted');
+    }, []);
+
+    useEffect(() => {
+        if (isVisible) {
+            console.log('NewReimbursementModal is now visible');
+            if (editingRequest) {
+                setTitle(editingRequest.title);
+                setAmount(editingRequest.amount.toString());
+                
+                // Format the requested date to DD-MM-YYYY if possible, or leave as is
+                const d = new Date(editingRequest.expenseDate);
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yyyy = d.getFullYear();
+                setDate(`${dd}-${mm}-${yyyy}`);
+                
+                setDescription(editingRequest.description || '');
+                setTypeId(editingRequest.reimbursementTypeId || editingRequest.reimbursementType);
+                setAttachments(editingRequest.attachments || []);
+            } else {
+                resetForm();
+            }
         }
     }, [editingRequest, isVisible]);
 
     const resetForm = () => {
         setTitle('');
         setAmount('');
-        setDate(new Date().toISOString().split('T')[0]);
+        const d = new Date();
+        setDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`);
         setDescription('');
         setTypeId('');
         setAttachments([]);
+        setIsDropdownOpen(false);
     };
 
     const handleClose = () => {
         if (!editingRequest) resetForm();
         onClose();
+    };
+
+    const parseDateToISO = (dateStr: string) => {
+        // Handle both DD-MM-YYYY and DD/MM/YYYY
+        const separator = dateStr.includes('-') ? '-' : '/';
+        const parts = dateStr.split(separator);
+        
+        if (parts.length === 3) {
+            // Check if year is first (YYYY-MM-DD or YYYY/MM/DD)
+            if (parts[0].length === 4) {
+                return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}T00:00:00.000Z`;
+            }
+            // Assume DD-MM-YYYY
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}T00:00:00.000Z`;
+        }
+        return dateStr;
+    }
+
+    const handlePickDocument = async () => {
+        // WEB FALLBACK
+        if (Platform.OS === 'web') {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.multiple = true;
+            
+            input.onchange = async (e: any) => {
+                const files = e.target.files;
+                if (!files) return;
+                
+                const filePromises = Array.from(files).map((file: any) => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            resolve({
+                                fileName: file.name,
+                                fileUrl: reader.result,
+                                type: file.type,
+                                size: file.size
+                            });
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                });
+                
+                const newAttachments = await Promise.all(filePromises);
+                setAttachments(prev => [...prev, ...newAttachments]);
+            };
+            
+            input.click();
+            return;
+        }
+
+        try {
+            const result = await launchImageLibrary({
+                mediaType: 'photo',
+                selectionLimit: 0, 
+                includeBase64: true, // Need base64 for backend validation
+            });
+
+            if (result.didCancel) {
+                return;
+            }
+
+            if (result.errorCode) {
+                Alert.alert('Error', result.errorMessage || 'Unknown error occurred');
+                return;
+            }
+
+            if (result.assets) {
+                const newAttachments = result.assets.map(asset => ({
+                    fileName: asset.fileName || 'image',
+                    fileUrl: asset.base64 ? `data:${asset.type || 'image/jpeg'};base64,${asset.base64}` : asset.uri,
+                    type: asset.type,
+                    size: asset.fileSize
+                }));
+                setAttachments(prev => [...prev, ...newAttachments]);
+            }
+        } catch (err: any) {
+            console.error('ImagePicker Error: ', err);
+            Alert.alert("Error", "Could not open image picker.");
+        }
     };
 
     const handleSubmit = async () => {
@@ -69,26 +173,25 @@ export default function NewReimbursementModal({ isVisible, onClose, editingReque
             return;
         }
 
-        const selectedType = typesResp?.data?.find((t: any) => t._id === typeId || t.name === typeId);
-        if (selectedType) {
-            if (selectedType.maxAmount && parseFloat(amount) > selectedType.maxAmount) {
-                Alert.alert("Error", `Maximum amount for ${selectedType.name} is ${formatCurrency(selectedType.maxAmount)}`);
-                return;
-            }
-            if (selectedType.requiresReceipt && attachments.length === 0) {
-                Alert.alert("Warning", `A receipt is required for ${selectedType.name} reimbursements.`);
-                // For now, we'll allow submitting but warn. In real app, we'd enforce it.
-            }
-        }
-
+        const selectedType = typesResp?.data?.find((t: any) => 
+            t._id === typeId || 
+            t.name === typeId || 
+            t.name?.toLowerCase() === typeId?.toLowerCase()
+        );
+        
         const payload = {
-            title,
-            amount: parseFloat(amount),
-            expenseDate: date,
-            description,
             reimbursementTypeId: selectedType?._id || typeId,
-            reimbursementType: selectedType?.name || typeId,
-            attachments: attachments.length > 0 ? attachments : undefined,
+            reimbursementType: (selectedType?.name || typeId || '').toLowerCase(),
+            title,
+            description,
+            amount: parseFloat(amount),
+            expenseDate: parseDateToISO(date),
+            attachments: attachments.length > 0 
+                ? attachments.map(att => ({
+                    fileName: att.fileName || att.name || 'receipt',
+                    fileUrl: att.fileUrl || att.uri || ''
+                })) 
+                : [],
         };
 
         try {
@@ -101,119 +204,163 @@ export default function NewReimbursementModal({ isVisible, onClose, editingReque
             }
             handleClose();
         } catch (err: any) {
-            Alert.alert("Error", err.data?.message || "Something went wrong.");
+            console.error("Reimbursement Submit Error: ", err);
+            let errMsg = "An unknown error occurred.";
+            
+            // Try to extract the most useful error message
+            if (err?.data?.error?.details?.[0]?.message) {
+                errMsg = err.data.error.details[0].message;
+            } else if (err?.data?.message) {
+                errMsg = err.data.message;
+            } else if (err?.data?.error?.message) {
+                errMsg = err.data.error.message;
+            } else if (err?.error) {
+                errMsg = err.error;
+            } else if (typeof err?.data === 'string') {
+                errMsg = err.data;
+            } else {
+                errMsg = JSON.stringify(err?.data || err || {});
+            }
+            
+            Alert.alert("Submission Error", errMsg);
         }
     };
 
     const reimbursementTypes = typesResp?.data || [];
+    const selectedTypeObj = reimbursementTypes.find((t: any) => t._id === typeId || t.name === typeId);
+
+    console.log('Rendering NewReimbursementModal, isVisible:', isVisible);
+
+    if (!isVisible) return null;
 
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isVisible}
-            onRequestClose={handleClose}
-        >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{editingRequest ? 'Edit Request' : 'New Reimbursement'}</Text>
-                        <TouchableOpacity onPress={handleClose}>
-                            <Text style={styles.closeBtn}>✕</Text>
+        <View style={styles.modalOverlay} pointerEvents="auto">
+            <View style={styles.modalCard}>
+                    
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <Text style={styles.headerTitle}>Request Reimbursement</Text>
+                        <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+                            <Text style={styles.closeIcon}>✕</Text>
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>Category *</Text>
-                            <View style={styles.typeGrid}>
-                                {reimbursementTypes.map((type: any) => (
-                                    <TouchableOpacity 
-                                        key={type._id} 
-                                        style={[
-                                            styles.typeItem, 
-                                            typeId === type._id && styles.typeItemActive
-                                        ]}
-                                        onPress={() => setTypeId(type._id)}
-                                    >
-                                        <Text style={[
-                                            styles.typeText,
-                                            typeId === type._id && styles.typeTextActive
-                                        ]}>{type.name}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                    {/* Content */}
+                    <ScrollView style={styles.scrollArea} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+                        
+                        <View style={styles.gridRow}>
+                            <View style={styles.gridCol}>
+                                <Text style={styles.label}>Title *</Text>
+                                <TextInput 
+                                    style={styles.input}
+                                    placeholder="Business Lunch with..."
+                                    placeholderTextColor="#94A3B8"
+                                    value={title}
+                                    onChangeText={setTitle}
+                                />
                             </View>
-                            {reimbursementTypes.length === 0 && !typesLoading && (
-                                <Text style={styles.errorText}>No categories available.</Text>
-                            )}
+                            <View style={[styles.gridCol, { zIndex: 10 }]}>
+                                <Text style={styles.label}>Type *</Text>
+                                <TouchableOpacity 
+                                    style={styles.selectInput}
+                                    onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+                                >
+                                    <Text style={{color: selectedTypeObj ? '#1E293B' : '#94A3B8', fontSize: 14}}>
+                                        {selectedTypeObj ? selectedTypeObj.name : 'Select Type'}
+                                    </Text>
+                                    <View style={styles.chevronIcon} />
+                                </TouchableOpacity>
+                                
+                                {isDropdownOpen && (
+                                    <View style={styles.dropdownMenu}>
+                                        {reimbursementTypes.map((type: any) => (
+                                            <TouchableOpacity 
+                                                key={type._id}
+                                                style={styles.dropdownOption}
+                                                onPress={() => {
+                                                    setTypeId(type._id);
+                                                    setIsDropdownOpen(false);
+                                                }}
+                                            >
+                                                <Text style={styles.dropdownOptionText}>{type.name}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
                         </View>
 
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>Title *</Text>
-                            <TextInput 
-                                style={styles.input}
-                                value={title}
-                                onChangeText={setTitle}
-                                placeholder="Business Lunch, Taxi, etc."
-                                placeholderTextColor="#94A3B8"
-                            />
-                        </View>
-
-                        <View style={styles.row}>
-                            <View style={[styles.formGroup, { flex: 1 }]}>
+                        <View style={[styles.gridRow, { zIndex: -1 }]}>
+                            <View style={styles.gridCol}>
                                 <Text style={styles.label}>Amount *</Text>
                                 <TextInput 
                                     style={styles.input}
+                                    placeholder="0.00"
+                                    placeholderTextColor="#94A3B8"
                                     value={amount}
                                     onChangeText={setAmount}
                                     keyboardType="numeric"
-                                    placeholder="0.00"
-                                    placeholderTextColor="#94A3B8"
                                 />
                             </View>
-                            <View style={[styles.formGroup, { flex: 1, marginLeft: 15 }]}>
-                                <Text style={styles.label}>Date *</Text>
-                                <TextInput 
-                                    style={styles.input}
-                                    value={date}
-                                    onChangeText={setDate}
-                                    placeholder="YYYY-MM-DD"
-                                    placeholderTextColor="#94A3B8"
-                                />
+                            <View style={styles.gridCol}>
+                                <Text style={styles.label}>Expense Date *</Text>
+                                <View style={styles.dateInputContainer}>
+                                    <TextInput 
+                                        style={[styles.input, { paddingRight: 40 }]}
+                                        placeholder="DD-MM-YYYY"
+                                        placeholderTextColor="#94A3B8"
+                                        value={date}
+                                        onChangeText={setDate}
+                                    />
+                                    <Text style={styles.calendarIcon}>📅</Text>
+                                </View>
                             </View>
                         </View>
 
-                        <View style={styles.formGroup}>
+                        <View style={[styles.formGroup, { zIndex: -2 }]}>
                             <Text style={styles.label}>Description</Text>
                             <TextInput 
                                 style={[styles.input, styles.textArea]}
+                                placeholder="Provide more details about the expense..."
+                                placeholderTextColor="#94A3B8"
+                                multiline
+                                textAlignVertical="top"
                                 value={description}
                                 onChangeText={setDescription}
-                                multiline
-                                numberOfLines={4}
-                                placeholder="Details about this expense..."
-                                placeholderTextColor="#94A3B8"
-                                textAlignVertical="top"
                             />
                         </View>
 
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>Receipts</Text>
+                        <View style={[styles.formGroup, { zIndex: -3 }]}>
+                            <Text style={styles.label}>Attachments (Images/PDF Max 1MB each)</Text>
                             <TouchableOpacity 
                                 style={styles.uploadBtn}
-                                onPress={() => Alert.alert("Note", "File upload requires react-native-document-picker. Please install it on a real device.")}
+                                onPress={handlePickDocument}
                             >
-                                <Text style={styles.uploadIcon}>📁</Text>
-                                <Text style={styles.uploadText}>Attach Receipt</Text>
+                                <Text style={styles.uploadIcon}>⬆</Text>
+                                <Text style={styles.uploadText}>Add Receipts</Text>
                             </TouchableOpacity>
+                            
                             {attachments.length > 0 && (
                                 <View style={styles.attachmentList}>
                                     {attachments.map((file: any, index: number) => (
                                         <View key={index} style={styles.attachmentItem}>
-                                            <Text style={styles.attachmentName} numberOfLines={1}>
-                                                {file.fileName || 'Receipt'}
-                                            </Text>
-                                            <TouchableOpacity onPress={() => setAttachments(prev => prev.filter((_, i) => i !== index))}>
+                                            <Image 
+                                                source={{ uri: file.fileUrl }} 
+                                                style={styles.thumbnail}
+                                                resizeMode="cover"
+                                            />
+                                            <View style={styles.attachmentInfo}>
+                                                <Text style={styles.attachmentName} numberOfLines={1}>
+                                                    {file.fileName || 'Receipt'}
+                                                </Text>
+                                                <Text style={styles.attachmentSize}>
+                                                    {file.size ? (file.size / 1024).toFixed(1) + ' KB' : ''}
+                                                </Text>
+                                            </View>
+                                            <TouchableOpacity 
+                                                onPress={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
+                                                style={styles.removeBtn}
+                                            >
                                                 <Text style={styles.removeIcon}>✕</Text>
                                             </TouchableOpacity>
                                         </View>
@@ -222,12 +369,12 @@ export default function NewReimbursementModal({ isVisible, onClose, editingReque
                             )}
                         </View>
                         
-                        <View style={{height: 20}} />
                     </ScrollView>
 
-                    <View style={styles.modalFooter}>
+                    {/* Footer */}
+                    <View style={styles.footer}>
                         <TouchableOpacity style={styles.cancelBtn} onPress={handleClose} disabled={isCreating || isUpdating}>
-                            <Text style={styles.cancelBtnText}>Discard</Text>
+                            <Text style={styles.cancelBtnText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity 
                             style={styles.submitBtn} 
@@ -237,127 +384,255 @@ export default function NewReimbursementModal({ isVisible, onClose, editingReque
                             {(isCreating || isUpdating) ? (
                                 <ActivityIndicator color="#FFF" size="small" />
                             ) : (
-                                <Text style={styles.submitBtnText}>{editingRequest ? 'Update Request' : 'Submit Claim'}</Text>
+                                <Text style={styles.submitBtnText}>Submit Request</Text>
                             )}
                         </TouchableOpacity>
                     </View>
                 </View>
             </View>
-        </Modal>
     );
 }
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        justifyContent: 'flex-end',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 16,
+        zIndex: 99999,
     },
-    modalContent: {
-        backgroundColor: '#FFF',
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
-        height: '85%',
-        paddingTop: 20,
+    modalCard: {
+        width: '100%',
+        maxWidth: 550,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 10,
+        maxHeight: '90%',
     },
-    modalHeader: {
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 25,
-        paddingBottom: 20,
+        paddingHorizontal: 24,
+        paddingVertical: 18,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: '#E2E8F0',
     },
-    modalTitle: { fontSize: 20, fontWeight: '800', color: '#1E293B' },
-    closeBtn: { fontSize: 20, color: '#94A3B8', fontWeight: 'bold' },
-    
-    scrollContent: { paddingHorizontal: 25, paddingTop: 20 },
-    formGroup: { marginBottom: 20 },
-    label: { fontSize: 13, fontWeight: '700', color: '#64748B', marginBottom: 8 },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#1E293B',
+    },
+    closeBtn: {
+        padding: 4,
+    },
+    closeIcon: {
+        fontSize: 20,
+        color: '#64748B',
+    },
+    scrollArea: {
+        flexShrink: 1,
+    },
+    contentContainer: {
+        padding: 24,
+    },
+    gridRow: {
+        flexDirection: 'row',
+        marginHorizontal: -8,
+        marginBottom: 20,
+        zIndex: 1,
+    },
+    gridCol: {
+        flex: 1,
+        paddingHorizontal: 8,
+    },
+    formGroup: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#334155',
+        marginBottom: 8,
+    },
     input: {
-        backgroundColor: '#F8FAFC',
         borderWidth: 1,
         borderColor: '#E2E8F0',
-        borderRadius: 12,
-        paddingHorizontal: 15,
-        paddingVertical: 12,
+        borderRadius: 8,
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 12,
+        height: 48,
         fontSize: 15,
         color: '#1E293B',
     },
-    textArea: { height: 100 },
-    row: { flexDirection: 'row' },
-    
-    typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    typeItem: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 10,
-        backgroundColor: '#F1F5F9',
-        borderWidth: 1,
-        borderColor: 'transparent',
-    },
-    typeItemActive: {
-        backgroundColor: COLORS.accent,
-        borderColor: COLORS.accent,
-    },
-    typeText: { fontSize: 12, fontWeight: '600', color: '#64748B' },
-    typeTextActive: { color: '#FFF' },
-    
-    uploadBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        paddingVertical: 15,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderStyle: 'dashed',
-        backgroundColor: '#F8FAFC',
-    },
-    uploadIcon: { fontSize: 20 },
-    uploadText: { color: '#64748B', fontWeight: '700', fontSize: 13 },
-    
-    attachmentList: { marginTop: 15, gap: 10 },
-    attachmentItem: {
+    selectInput: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#F1F5F9',
-        padding: 12,
-        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 8,
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 12,
+        height: 48,
     },
-    attachmentName: { fontSize: 12, color: '#1E293B', fontWeight: '600', flex: 1 },
-    removeIcon: { fontSize: 16, color: COLORS.error, fontWeight: 'bold', marginLeft: 10 },
-    
-    modalFooter: {
+    chevronIcon: {
+        width: 0,
+        height: 0,
+        borderLeftWidth: 5,
+        borderRightWidth: 5,
+        borderTopWidth: 5,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderTopColor: '#64748B',
+    },
+    dropdownMenu: {
+        position: 'absolute',
+        top: 75,
+        left: 8,
+        right: 8,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 6,
+        zIndex: 1000,
+    },
+    dropdownOption: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    dropdownOptionText: {
+        fontSize: 14,
+        color: '#1E293B',
+    },
+    dateInputContainer: {
+        position: 'relative',
+        justifyContent: 'center',
+    },
+    calendarIcon: {
+        position: 'absolute',
+        right: 12,
+        fontSize: 16,
+        color: '#1E293B',
+    },
+    textArea: {
+        height: 100,
+        paddingTop: 12,
+    },
+    uploadBtn: {
         flexDirection: 'row',
-        gap: 15,
-        padding: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+        borderStyle: 'dashed',
+        borderRadius: 8,
+        backgroundColor: '#FFFFFF',
+        height: 54,
+    },
+    uploadIcon: {
+        fontSize: 18,
+        color: '#64748B',
+    },
+    uploadText: {
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    footer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 12,
+        paddingHorizontal: 24,
+        paddingVertical: 16,
         borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
+        borderTopColor: '#E2E8F0',
+        backgroundColor: '#FCFCFD',
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 8,
     },
     cancelBtn: {
-        flex: 1,
-        paddingVertical: 15,
-        alignItems: 'center',
-        borderRadius: 15,
-        backgroundColor: '#F1F5F9',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 6,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#1D4ED8',
     },
-    cancelBtnText: { color: '#64748B', fontWeight: '800', fontSize: 14 },
+    cancelBtnText: {
+        color: '#1D4ED8',
+        fontSize: 14,
+        fontWeight: '500',
+    },
     submitBtn: {
-        flex: 2,
-        paddingVertical: 15,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 6,
+        backgroundColor: '#1D4ED8',
+        justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 15,
-        backgroundColor: COLORS.accent,
-        shadowColor: COLORS.accent,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        minWidth: 120,
     },
-    submitBtnText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
-    errorText: { color: COLORS.error, fontSize: 11, marginTop: 4 },
+    submitBtnText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    attachmentList: { 
+        marginTop: 15, 
+        gap: 12 
+    },
+    attachmentItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F8FAFC',
+        padding: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    thumbnail: {
+        width: 48,
+        height: 48,
+        borderRadius: 8,
+        backgroundColor: '#E2E8F0',
+    },
+    attachmentInfo: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    attachmentName: { 
+        fontSize: 14, 
+        fontWeight: '500',
+        color: '#1E293B' 
+    },
+    attachmentSize: {
+        fontSize: 12,
+        color: '#64748B',
+        marginTop: 2,
+    },
+    removeBtn: {
+        padding: 8,
+    },
+    removeIcon: { 
+        fontSize: 16, 
+        color: '#EF4444' 
+    },
 });

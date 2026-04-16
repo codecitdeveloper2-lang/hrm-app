@@ -18,6 +18,10 @@ export default function ReimbursementPage() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRequest, setEditingRequest] = useState<any>(null);
 
+  React.useEffect(() => {
+    console.log('Modal Visibility Changed:', isModalVisible);
+  }, [isModalVisible]);
+
   // Queries
   const { 
     data: reimbursementsResp, 
@@ -63,6 +67,15 @@ export default function ReimbursementPage() {
     setEditingRequest(null);
   };
 
+  const handleNewRequest = () => {
+    console.log('--- NEW REQUEST BUTTON CLICKED ---');
+    if (__DEV__) {
+      // Alert.alert("Debug", "New Request button clicked!");
+    }
+    setEditingRequest(null);
+    setIsModalVisible(true);
+  };
+
   const requests = reimbursementsResp?.data || [];
   
   const stats = {
@@ -104,7 +117,7 @@ export default function ReimbursementPage() {
         
         {/* Top Actions */}
         <View style={styles.topActions}>
-            <TouchableOpacity style={styles.applyBtn} onPress={() => setIsModalVisible(true)}>
+            <TouchableOpacity style={styles.applyBtn} onPress={handleNewRequest}>
                 <Text style={styles.applyBtnText}>+ New Request</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.refreshBtn} onPress={handleRefresh}>
@@ -200,7 +213,7 @@ export default function ReimbursementPage() {
                         <Text style={{fontSize: 50, marginBottom: 15}}>📑</Text>
                         <Text style={styles.emptyTitle}>No requests found</Text>
                         <Text style={styles.emptySubtitle}>You haven't submitted any reimbursement requests yet.</Text>
-                        <TouchableOpacity style={styles.emptyBtn} onPress={() => setIsModalVisible(true)}>
+                        <TouchableOpacity style={styles.emptyBtn} onPress={handleNewRequest}>
                             <Text style={styles.emptyBtnText}>Create Request</Text>
                         </TouchableOpacity>
                     </View>

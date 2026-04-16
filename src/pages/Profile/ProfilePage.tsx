@@ -1,5 +1,15 @@
-import React from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, Platform} from 'react-native';
+import React, { useState } from 'react';
+import {
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  useWindowDimensions, 
+  Platform,
+  TextInput,
+  Alert
+} from 'react-native';
 import {COLORS} from '../../styles';
 import { useAppDispatch } from '../../store';
 import { logout } from '../../store/slices/authSlice';
@@ -12,20 +22,16 @@ export default function ProfilePage() {
   const isMobile = width < 768;
   const isResponsive = width < 1024;
 
-  const handleLogout = () => {
-    dispatch(logout());
-    dispatch(apiSlice.util.resetApiState());
-  };
-
-  const employeeData = {
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileData, setProfileData] = useState({
     personal: {
       name: 'John Doe',
-      status: 'Active',
       role: 'Software Developer',
       dept: 'IT',
       email: 'souravghoshmgu1@gmail.com',
       phone: '9000000001',
       dob: 'August 20, 1998',
+      status: 'Active',
     },
     employment: {
       designation: 'Software Developer',
@@ -45,6 +51,34 @@ export default function ProfilePage() {
       relationship: 'Mother',
       phone: '8888888888',
     }
+  });
+
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(apiSlice.util.resetApiState());
+  };
+
+  const handleSave = () => {
+    setIsEditing(false);
+    Alert.alert("Success", "Profile updated successfully!");
+  };
+
+  const handleToggleEdit = () => {
+    if (isEditing) {
+      handleSave();
+    } else {
+      setIsEditing(true);
+    }
+  };
+
+  const updateField = (category: keyof typeof profileData, field: string, value: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [field]: value
+      }
+    }));
   };
 
   const PROFILE_STATS = [
@@ -63,9 +97,12 @@ export default function ProfilePage() {
       {/* Header with Title and Edit Button */}
       <View style={styles.header}>
         <Text style={styles.title}>My Profile</Text>
-        <TouchableOpacity style={styles.editBtn}>
-          <Text style={styles.editBtnIcon}>✎</Text>
-          <Text style={styles.editBtnText}>Edit Profile</Text>
+        <TouchableOpacity 
+          style={[styles.editBtn, isEditing && styles.saveBtn]} 
+          onPress={handleToggleEdit}
+        >
+          <Text style={styles.editBtnIcon}>{isEditing ? '✓' : '✎'}</Text>
+          <Text style={styles.editBtnText}>{isEditing ? 'Save Profile' : 'Edit Profile'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -80,22 +117,30 @@ export default function ProfilePage() {
           </View>
           <View style={styles.heroMainInfo}>
             <View style={styles.nameRow}>
-              <Text style={styles.heroName}>{employeeData.personal.name}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.heroNameInput}
+                  value={profileData.personal.name}
+                  onChangeText={(val) => updateField('personal', 'name', val)}
+                />
+              ) : (
+                <Text style={styles.heroName}>{profileData.personal.name}</Text>
+              )}
               <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>{employeeData.personal.status}</Text>
+                <Text style={styles.statusText}>{profileData.personal.status}</Text>
               </View>
             </View>
-            <Text style={styles.heroRole}>{employeeData.personal.role}</Text>
-            <Text style={styles.heroDept}>{employeeData.personal.dept}</Text>
+            <Text style={styles.heroRole}>{profileData.personal.role}</Text>
+            <Text style={styles.heroDept}>{profileData.personal.dept}</Text>
             
             <View style={styles.heroContactRow}>
               <View style={styles.heroContactItem}>
                 <Text style={styles.contactIcon}>✉</Text>
-                <Text style={styles.contactText}>{employeeData.personal.email}</Text>
+                <Text style={styles.contactText}>{profileData.personal.email}</Text>
               </View>
               <View style={styles.heroContactItem}>
                 <Text style={styles.contactIcon}>📞</Text>
-                <Text style={styles.contactText}>{employeeData.personal.phone}</Text>
+                <Text style={styles.contactText}>{profileData.personal.phone}</Text>
               </View>
             </View>
           </View>
@@ -116,38 +161,122 @@ export default function ProfilePage() {
         {/* Left Column */}
         <View style={styles.infoColumn}>
           <InfoSection title="Personal Information">
-            <InfoRow label="Full Name" value={employeeData.personal.name} />
-            <InfoRow label="Email" value={employeeData.personal.email} />
-            <InfoRow label="Phone" value={employeeData.personal.phone} />
-            <InfoRow label="Date of Birth" value={employeeData.personal.dob} isLast />
+            <InfoRow 
+              label="Full Name" 
+              value={profileData.personal.name} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('personal', 'name', text)}
+            />
+            <InfoRow 
+              label="Email" 
+              value={profileData.personal.email} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('personal', 'email', text)}
+            />
+            <InfoRow 
+              label="Phone" 
+              value={profileData.personal.phone} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('personal', 'phone', text)}
+            />
+            <InfoRow 
+              label="Date of Birth" 
+              value={profileData.personal.dob} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('personal', 'dob', text)}
+              isLast 
+            />
           </InfoSection>
 
           <View style={styles.spacer} />
 
           <InfoSection title="Address Details">
-            <InfoRow label="Street" value={employeeData.address.street} />
-            <InfoRow label="City & State" value={employeeData.address.cityState} />
-            <InfoRow label="Country" value={employeeData.address.country} />
-            <InfoRow label="Zip Code" value={employeeData.address.zip} isLast />
+            <InfoRow 
+              label="Street" 
+              value={profileData.address.street} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('address', 'street', text)}
+            />
+            <InfoRow 
+              label="City & State" 
+              value={profileData.address.cityState} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('address', 'cityState', text)}
+            />
+            <InfoRow 
+              label="Country" 
+              value={profileData.address.country} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('address', 'country', text)}
+            />
+            <InfoRow 
+              label="Zip Code" 
+              value={profileData.address.zip} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('address', 'zip', text)}
+              isLast 
+            />
           </InfoSection>
         </View>
 
         {/* Right Column */}
         <View style={styles.infoColumn}>
           <InfoSection title="Employment Details">
-            <InfoRow label="Designation" value={employeeData.employment.designation} />
-            <InfoRow label="Department" value={employeeData.employment.department} />
-            <InfoRow label="Role" value={employeeData.employment.role} />
-            <InfoRow label="Join Date" value={employeeData.employment.joinDate} />
-            <InfoRow label="Employee ID" value={employeeData.employment.id} isLast />
+            <InfoRow 
+              label="Designation" 
+              value={profileData.employment.designation} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('employment', 'designation', text)}
+            />
+            <InfoRow 
+              label="Department" 
+              value={profileData.employment.department} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('employment', 'department', text)}
+            />
+            <InfoRow 
+              label="Role" 
+              value={profileData.employment.role} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('employment', 'role', text)}
+            />
+            <InfoRow 
+              label="Join Date" 
+              value={profileData.employment.joinDate} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('employment', 'joinDate', text)}
+            />
+            <InfoRow 
+              label="Employee ID" 
+              value={profileData.employment.id} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('employment', 'id', text)}
+              isLast 
+            />
           </InfoSection>
 
           <View style={styles.spacer} />
 
           <InfoSection title="Emergency Contact">
-            <InfoRow label="Name" value={employeeData.emergency.name} />
-            <InfoRow label="Relationship" value={employeeData.emergency.relationship} />
-            <InfoRow label="Phone" value={employeeData.emergency.phone} isLast />
+            <InfoRow 
+              label="Name" 
+              value={profileData.emergency.name} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('emergency', 'name', text)}
+            />
+            <InfoRow 
+              label="Relationship" 
+              value={profileData.emergency.relationship} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('emergency', 'relationship', text)}
+            />
+            <InfoRow 
+              label="Phone" 
+              value={profileData.emergency.phone} 
+              isEditing={isEditing}
+              onChangeText={(text) => updateField('emergency', 'phone', text)}
+              isLast 
+            />
           </InfoSection>
         </View>
       </View>
@@ -173,14 +302,36 @@ const InfoSection = ({title, children}: {title: string, children: React.ReactNod
   </View>
 );
 
-const InfoRow = ({label, value, isLast}: {label: string, value: string, isLast?: boolean}) => (
+const InfoRow = ({
+  label, 
+  value, 
+  isLast, 
+  isEditing, 
+  onChangeText
+}: {
+  label: string, 
+  value: string, 
+  isLast?: boolean,
+  isEditing?: boolean,
+  onChangeText?: (text: string) => void
+}) => (
   <View>
     <View style={styles.infoRow}>
       <View style={styles.labelCol}>
         <Text style={styles.infoLabelIcon}>{getIconForLabel(label)}</Text>
         <Text style={styles.infoLabelText}>{label}</Text>
       </View>
-      <Text style={styles.infoValueText}>{value}</Text>
+      {isEditing ? (
+        <TextInput
+          style={styles.editableValue}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={`Enter ${label}`}
+          placeholderTextColor="#94A3B8"
+        />
+      ) : (
+        <Text style={styles.infoValueText}>{value}</Text>
+      )}
     </View>
     {!isLast && <View style={styles.divider} />}
   </View>
@@ -222,6 +373,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     gap: 8,
+  },
+  saveBtn: {
+    backgroundColor: '#10B981',
   },
   editBtnIcon: {
     color: '#FFFFFF',
@@ -300,6 +454,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  heroNameInput: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.3)',
+    padding: 0,
+    flex: 1,
   },
   statusBadge: {
     backgroundColor: 'rgba(52, 211, 153, 0.2)',
@@ -408,6 +572,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1E293B',
     fontWeight: '700',
+  },
+  editableValue: {
+    fontSize: 14,
+    color: '#3B82F6',
+    fontWeight: '700',
+    textAlign: 'right',
+    padding: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    minWidth: 120,
   },
   divider: {
     height: 1,

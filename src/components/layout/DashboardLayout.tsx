@@ -67,6 +67,7 @@ export default function DashboardLayout({
           <Header 
             title={title} 
             onMenuPress={toggleMenu}
+            onProfilePress={() => onMenuSelect('Profile')}
             showMenuButton={isMobile}
           />
           <View style={styles.content}>

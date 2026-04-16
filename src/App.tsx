@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   {key: 'Attendance', label: 'Attendance', icon: '✅'},
   {key: 'Schedule', label: 'Schedule', icon: '📅'},
   {key: 'Leave', label: 'Leave', icon: '✉️'},
-  {key: 'Reimbursement', label: 'Reimbursements', icon: '💳'},
+  {key: 'Reimbursements', label: 'Reimbursements', icon: '💳'},
   {key: 'Profile', label: 'Profile', icon: '👤'},
 ];
 
@@ -56,7 +56,7 @@ function AppContent() {
       case 'Attendance': return <AttendancePage />;
       case 'Schedule': return <SchedulePage />;
       case 'Leave': return <LeavePage />;
-      case 'Reimbursement': return <ReimbursementPage />;
+      case 'Reimbursements': return <ReimbursementPage />;
       case 'Profile': return <ProfilePage />;
       default: return <DashboardPage />;
     }
