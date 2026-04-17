@@ -25,7 +25,11 @@ export default function StatusCard() {
   const isClockedIn = d?.isClockedIn ?? false;
   const isOnBreak = d?.isOnBreak ?? (d?.breaks?.length > 0 && !d.breaks[d.breaks.length - 1].endTime);
   const loading = isClockingInLoading || isClockingOutLoading || isBreakingStartLoading || isResumingLoading;
-  const requiresCorrection = correctionData?.success && correctionData?.data?.requiresLogoutCorrection;
+  const requiresCorrection = 
+    correctionData?.success && 
+    correctionData?.data?.requiresLogoutCorrection && 
+    (correctionData?.data?.shiftId || correctionData?.data?.incompleteShift?.shiftId) &&
+    (correctionData?.data?.loginTime || correctionData?.data?.incompleteShift?.loginTime);
   const [displayDuration, setDisplayDuration] = useState('00:00:00');
 
   useEffect(() => {

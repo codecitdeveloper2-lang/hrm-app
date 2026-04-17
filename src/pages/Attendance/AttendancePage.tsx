@@ -6,7 +6,6 @@ import StatCard from '../../components/dashboard/StatCard';
 import Button from '../../components/common/Button';
 import { 
   useGetClockInStatusQuery, 
-  useGetRecentActivityQuery,
 } from '../../store/api/apiSlice';
 import CorrectionModal from '../../components/attendance/CorrectionModal';
 import AttendanceStats from '../../components/attendance/AttendanceStats';
@@ -17,9 +16,6 @@ export default function AttendancePage() {
   const isResponsive = width < 1024;
   
   const { data: statusData } = useGetClockInStatusQuery(undefined);
-  const { data: activityData } = useGetRecentActivityQuery({ 
-    date: new Date().toISOString().split('T')[0],
-  });
 
   // Current Date for header
   const headerDateString = new Date().toLocaleDateString('en-US', {
@@ -168,56 +164,9 @@ export default function AttendancePage() {
         </View>
       </View>
 
-      {/* Recent Activity Section */}
-      <View style={styles.activitySection}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
-        <View style={styles.detailsCard}>
-          {activityData?.data?.length > 0 ? (
-            activityData.data.map((item: any, index: number) => (
-              <View key={item._id || index}>
-                <View style={styles.activityItem}>
-                  <View style={styles.activityHeader}>
-                    <Text style={styles.activityDate}>
-                      {new Date(item.shiftDate || item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </Text>
-                    <View style={[styles.statusBadge, item.status === 'present' && styles.statusBadgeActive]}>
-                      <Text style={[styles.statusBadgeText, item.status === 'present' && styles.statusBadgeTextActive]}>
-                        {item.status}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.activityDetails}>
-                    <View style={styles.activityTimeBox}>
-                      <Text style={styles.activityTimeLabel}>IN</Text>
-                      <Text style={styles.activityTimeValue}>
-                        {item.checkIn?.time ? new Date(item.checkIn.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                      </Text>
-                    </View>
-                    <View style={styles.activityTimeBox}>
-                      <Text style={styles.activityTimeLabel}>OUT</Text>
-                      <Text style={styles.activityTimeValue}>
-                        {item.checkOut?.time ? new Date(item.checkOut.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                      </Text>
-                    </View>
-                    <View style={styles.activityTimeBox}>
-                      <Text style={styles.activityTimeLabel}>DURATION</Text>
-                      <Text style={[styles.activityTimeValue, {color: COLORS.primary}]}>
-                        {item.durationString || (item.durationMs ? `${Math.floor(item.durationMs / 3600000)}h ${Math.floor((item.durationMs % 3600000) / 60000)}m` : '--:--')}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                {index < activityData.data.length - 1 && <View style={styles.divider} />}
-              </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No recent activity found.</Text>
-          )}
-        </View>
-      </View>
 
     </ScrollView>
-    {d?.requiresLogoutCorrection && d?.incompleteShift && (
+    {d?.requiresLogoutCorrection && d?.incompleteShift && (d?.incompleteShift?.loginTime || d?.incompleteShift?.checkIn?.time) && (
       <CorrectionModal 
         isVisible={true} 
         data={{
@@ -385,44 +334,6 @@ const styles = StyleSheet.create({
   },
   weekTime: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  activitySection: {
-    marginTop: 32,
-  },
-  activityItem: {
-    paddingVertical: 8,
-  },
-  activityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  activityDate: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  activityDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
-  },
-  activityTimeBox: {
-    alignItems: 'center',
-  },
-  activityTimeLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#94A3B8',
-    marginBottom: 4,
-  },
-  activityTimeValue: {
-    fontSize: 13,
     fontWeight: '700',
     color: '#1E293B',
   },

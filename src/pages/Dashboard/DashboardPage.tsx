@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, StyleSheet, ScrollView, useWindowDimensions} from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import WelcomeSection from '../../components/dashboard/WelcomeSection';
 import StatusCard from '../../components/dashboard/StatusCard';
 import StatCard from '../../components/dashboard/StatCard';
@@ -49,8 +49,8 @@ export default function DashboardPage() {
   ];
 
   return (
-    <ScrollView 
-      style={styles.container} 
+    <ScrollView
+      style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}>
 
@@ -60,9 +60,9 @@ export default function DashboardPage() {
       {/* Stats Row */}
       <View style={styles.statsRow}>
         {DASHBOARD_STATS.map((stat, index) => (
-          <View 
-            key={index} 
-            style={{ 
+          <View
+            key={index}
+            style={{
               width: isMobile ? '100%' : isResponsive ? '48%' : '24%',
               minWidth: isMobile ? '100%' : 150,
             }}>

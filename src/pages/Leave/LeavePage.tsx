@@ -263,9 +263,13 @@ export default function LeavePage() {
                 </ScrollView>
             </View>
 
-            {/* Quick Policies View */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Leave Policies</Text>
+                
+                {(!leaveTypesResp?.data || leaveTypesResp.data.length === 0) && (
+                    <Text style={styles.emptyPolicyText}>No leave types defined for your role.</Text>
+                )}
+
                 {leaveTypesResp?.data?.slice(0, 4).map((type: any) => (
                     <View key={type._id} style={styles.policyRow}>
                         <View style={styles.policyBullet} />
@@ -275,6 +279,16 @@ export default function LeavePage() {
                         </View>
                     </View>
                 ))}
+
+                <View style={styles.noteBox}>
+                    <View style={styles.noteTitleRow}>
+                        <Text style={styles.noteIcon}>ⓘ</Text>
+                        <Text style={styles.noteTitle}>NOTE</Text>
+                    </View>
+                    <Text style={styles.noteText}>
+                        Leave policies are subject to change based on company guidelines and your employment status.
+                    </Text>
+                </View>
             </View>
 
         </ScrollView>
@@ -503,4 +517,40 @@ const styles = StyleSheet.create({
   policyBullet: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#6C63FF' },
   policyName: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   policyMeta: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+  emptyPolicyText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 14,
+    marginBottom: 20,
+    fontStyle: 'italic',
+  },
+  noteBox: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  noteTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 6,
+  },
+  noteIcon: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  noteTitle: {
+    color: '#3B82F6',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  noteText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    lineHeight: 18,
+  },
 });

@@ -43,7 +43,11 @@ function AppContent() {
     pollingInterval: 60000,
   });
 
-  const requiresCorrection = correctionData?.success && correctionData?.data?.requiresLogoutCorrection;
+  const requiresCorrection = 
+    correctionData?.success && 
+    correctionData?.data?.requiresLogoutCorrection && 
+    (correctionData?.data?.shiftId || correctionData?.data?.incompleteShift?.shiftId) &&
+    (correctionData?.data?.loginTime || correctionData?.data?.incompleteShift?.loginTime);
 
   if (!isAuthenticated) {
     return <LoginScreen />;
@@ -70,7 +74,11 @@ function AppContent() {
       {renderPage()}
       <CorrectionModal 
         isVisible={requiresCorrection} 
-        data={correctionData?.data} 
+        data={correctionData?.data?.incompleteShift ? {
+          shiftId: correctionData.data.incompleteShift.shiftId || correctionData.data.incompleteShift._id,
+          shiftDate: correctionData.data.incompleteShift.shiftDate,
+          loginTime: correctionData.data.incompleteShift.loginTime || correctionData.data.incompleteShift.checkIn?.time,
+        } : correctionData?.data} 
       />
     </DashboardLayout>
   );
