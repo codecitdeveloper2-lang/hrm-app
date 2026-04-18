@@ -81,7 +81,11 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
     twoFactor: false
   });
 
+  const [language, setLanguage] = useState('English (US)');
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
+
   const colors = ['#4285F4', '#9333EA', '#EF4444', '#22C55E', '#F59E0B', '#06B6D4'];
+  const LANGUAGES = ['English (US)', 'English (UK)', 'Español', 'Français', 'Deutsch', 'हिंदी'];
 
   return (
     <Modal
@@ -249,10 +253,39 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
                         <Text style={styles.itemSubtitle}>Select your preferred language</Text>
                       </View>
                     </View>
-                    <TouchableOpacity style={styles.dropdown}>
-                      <Text style={styles.dropdownText}>English (US)</Text>
-                      <Text style={styles.dropdownArrow}>▾</Text>
+                    <TouchableOpacity 
+                      style={[styles.dropdown, showLangDropdown && styles.dropdownOpen]}
+                      onPress={() => setShowLangDropdown(!showLangDropdown)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.dropdownText}>{language}</Text>
+                      <Text style={styles.dropdownArrow}>{showLangDropdown ? '▴' : '▾'}</Text>
                     </TouchableOpacity>
+                    {showLangDropdown && (
+                      <View style={styles.dropdownList}>
+                        {LANGUAGES.map((lang) => (
+                          <TouchableOpacity 
+                            key={lang} 
+                            style={[
+                              styles.dropdownItem,
+                              language === lang && styles.dropdownItemSelected
+                            ]}
+                            onPress={() => {
+                              setLanguage(lang);
+                              setShowLangDropdown(false);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[
+                              styles.dropdownItemText,
+                              language === lang && styles.dropdownItemTextSelected
+                            ]}>
+                              {lang}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
                   </View>
                 </SettingSection>
 
@@ -510,6 +543,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334155',
   },
+  dropdownOpen: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 0,
+  },
   dropdownText: {
     color: COLORS.textPrimary,
     fontSize: 14,
@@ -517,6 +555,31 @@ const styles = StyleSheet.create({
   dropdownArrow: {
     color: COLORS.textMuted,
     fontSize: 12,
+  },
+  dropdownList: {
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: '#1E293B',
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#1D4ED8',
+  },
+  dropdownItemText: {
+    color: COLORS.white,
+    fontSize: 14,
+  },
+  dropdownItemTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   infoBox: {
     backgroundColor: 'rgba(66, 133, 244, 0.08)',
