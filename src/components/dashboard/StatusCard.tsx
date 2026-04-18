@@ -26,6 +26,7 @@ export default function StatusCard() {
   const isOnBreak = d?.isOnBreak ?? (d?.breaks?.length > 0 && !d.breaks[d.breaks.length - 1].endTime);
   const loading = isClockingInLoading || isClockingOutLoading || isBreakingStartLoading || isResumingLoading;
   const requiresCorrection = 
+    isClockedIn &&
     correctionData?.success && 
     correctionData?.data?.requiresLogoutCorrection && 
     (correctionData?.data?.shiftId || correctionData?.data?.incompleteShift?.shiftId) &&

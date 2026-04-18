@@ -3,6 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, TouchableWithoutFeedba
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES } from '../../styles';
 import SettingsOverlay from './SettingsOverlay';
+import { useAppDispatch } from '../../store';
+import { logout } from '../../store/slices/authSlice';
+import { apiSlice } from '../../store/api/apiSlice';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -19,6 +22,13 @@ export default function Header({ title, subtitle, onMenuPress, onProfilePress, s
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
+
+  const handleLogout = () => {
+    setShowDropdown(false);
+    dispatch(logout());
+    dispatch(apiSlice.util.resetApiState());
+  };
 
   const toggleDropdown = () => setShowDropdown(!showDropdown);
 
@@ -67,7 +77,7 @@ export default function Header({ title, subtitle, onMenuPress, onProfilePress, s
         <TouchableWithoutFeedback onPress={() => setShowDropdown(false)}>
           <View style={styles.modalOverlay}>
             <View style={[
-              styles.dropdownContainer, 
+              styles.dropdownContainer,
               { top: 75 + (Dimensions.get('window').width < 768 ? insets.top : 0) }
             ]}>
               {/* Dropdown Header */}
@@ -98,7 +108,7 @@ export default function Header({ title, subtitle, onMenuPress, onProfilePress, s
 
               <View style={styles.divider} />
 
-              <TouchableOpacity style={styles.menuItem}>
+              <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
                 <Text style={[styles.menuIconText, { color: COLORS.error }]}>↳</Text>
                 <Text style={[styles.menuLabel, { color: COLORS.error }]}>Sign Out</Text>
               </TouchableOpacity>
@@ -107,9 +117,9 @@ export default function Header({ title, subtitle, onMenuPress, onProfilePress, s
         </TouchableWithoutFeedback>
       </Modal>
 
-      <SettingsOverlay 
-        isVisible={showSettings} 
-        onClose={() => setShowSettings(false)} 
+      <SettingsOverlay
+        isVisible={showSettings}
+        onClose={() => setShowSettings(false)}
       />
     </View>
   );
@@ -174,7 +184,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: COLORS.success, // Using success color for green avatar like screenshot
+    backgroundColor: '#64748B',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -219,7 +229,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 12,
-    backgroundColor: COLORS.success,
+    backgroundColor: '#64748B',
     justifyContent: 'center',
     alignItems: 'center',
   },

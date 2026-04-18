@@ -20,8 +20,8 @@ interface SettingItemProps {
 }
 
 const SettingItem = ({ icon, title, subtitle, type, value, onValueChange, children }: SettingItemProps) => (
-  <View style={styles.itemContainer}>
-    <View style={styles.itemLeft}>
+  <View style={[styles.itemContainer, type === 'custom' && { flexDirection: 'column', alignItems: 'flex-start' }]}>
+    <View style={[styles.itemLeft, type === 'custom' && { width: '100%', marginBottom: 12 }]}>
       <View style={styles.itemIconContainer}>
         <Text style={styles.itemIcon}>{icon}</Text>
       </View>
@@ -30,17 +30,21 @@ const SettingItem = ({ icon, title, subtitle, type, value, onValueChange, childr
         <Text style={styles.itemSubtitle}>{subtitle}</Text>
       </View>
     </View>
-    <View style={styles.itemRight}>
-      {type === 'toggle' && (
+    {type === 'toggle' && (
+      <View style={styles.itemRight}>
         <Switch
           value={value as boolean}
           onValueChange={onValueChange}
           trackColor={{ false: '#3E3E3E', true: COLORS.accent }}
           thumbColor={value ? COLORS.white : '#f4f3f4'}
         />
-      )}
-      {type === 'custom' && children}
-    </View>
+      </View>
+    )}
+    {type === 'custom' && (
+      <View style={[styles.itemRight, { marginLeft: 0, width: '100%' }]}>
+        {children}
+      </View>
+    )}
   </View>
 );
 
@@ -95,24 +99,24 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
           {/* Top Header */}
           <View style={styles.topHeader}>
             <View>
-              <Text style={styles.headerTitle}>settings</Text>
-              <Text style={styles.headerSubtitle}>manage_preferences</Text>
+              <Text style={styles.headerTitle}>Settings</Text>
+              <Text style={styles.headerSubtitle}>Manage your preferences</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <TouchableOpacity style={styles.saveButton}>
-                <Text style={styles.saveButtonText}>☁️ all_saved</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <View style={styles.saveBadge}>
+                <Text style={styles.saveBadgeText}>✓ Saved</Text>
+              </View>
+              <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.8}>
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
             <View style={[styles.grid, isLargeScreen && styles.gridRow]}>
               {/* Left Column / Top Section */}
               <View style={[styles.gridColumn, isLargeScreen && { marginRight: 20 }]}>
-                <SettingSection title="notifications">
+                <SettingSection title="Notifications">
                   <SettingItem 
                     icon="✉️" 
                     title="Email Notifications" 
@@ -147,7 +151,7 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
                   />
                 </SettingSection>
 
-                <SettingSection title="security">
+                <SettingSection title="Security">
                   <SettingItem 
                     icon="🛡️" 
                     title="Two-Factor Authentication" 
@@ -197,10 +201,10 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
 
               {/* Right Column / Bottom Section */}
               <View style={styles.gridColumn}>
-                <SettingSection title="appearance">
+                <SettingSection title="Appearance">
                   <SettingItem 
                     icon="☀️" 
-                    title="dark_mode" 
+                    title="Dark Mode" 
                     subtitle="Switch to dark theme" 
                     type="toggle" 
                     value={appearance.darkMode}
@@ -216,7 +220,7 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
                   />
                   <SettingItem 
                     icon="🎨" 
-                    title="accent_color" 
+                    title="Accent Color" 
                     subtitle="Choose your preferred accent color" 
                     type="custom"
                   >
@@ -252,7 +256,7 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
                   </View>
                 </SettingSection>
 
-                <SettingSection title="privacy_data">
+                <SettingSection title="Privacy & Data">
                    <View style={styles.infoBox}>
                      <Text style={styles.infoText}>ℹ️ Your data is securely stored and protected according to our privacy policy.</Text>
                    </View>
@@ -260,8 +264,8 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
                    <View style={styles.dataItem}>
                       <Text style={styles.dataTitle}>Data Export</Text>
                       <Text style={styles.dataSubtitle}>Download a copy of your data including attendance records, leave history, and profile information.</Text>
-                      <TouchableOpacity style={styles.borderButton}>
-                        <Text style={styles.borderButtonText}>📥 Request Data Export</Text>
+                      <TouchableOpacity style={styles.exportButton} activeOpacity={0.8}>
+                        <Text style={styles.exportButtonText}>Request Data Export</Text>
                       </TouchableOpacity>
                    </View>
 
@@ -287,8 +291,8 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
                    <View style={styles.dangerZone}>
                       <Text style={styles.dangerTitle}>Danger Zone</Text>
                       <Text style={styles.dangerSubtitle}>Permanently delete your account and all associated data. This action cannot be undone.</Text>
-                      <TouchableOpacity style={styles.deleteButton}>
-                        <Text style={styles.deleteButtonText}>🗑️ Delete Account</Text>
+                      <TouchableOpacity style={styles.deleteButton} activeOpacity={0.8}>
+                        <Text style={styles.deleteButtonText}>Delete Account</Text>
                       </TouchableOpacity>
                    </View>
                 </SettingSection>
@@ -312,13 +316,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   modalContent: {
-    width: '94%',
-    height: '85%',
-    backgroundColor: COLORS.bgDark,
-    borderRadius: 24,
-    padding: 24,
+    width: '96%',
+    height: '88%',
+    backgroundColor: '#0F172A',
+    borderRadius: 28,
+    padding: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
@@ -341,27 +345,29 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: 2,
   },
-  saveButton: {
-    backgroundColor: 'rgba(66, 133, 244, 0.15)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+  saveBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(66, 133, 244, 0.3)',
-    marginRight: 10,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    marginRight: 12,
   },
-  saveButtonText: {
-    color: '#4285F4',
-    fontSize: 13,
-    fontWeight: '600',
+  saveBadgeText: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '700',
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   closeButtonText: {
     color: COLORS.white,
@@ -377,19 +383,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionCard: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: '#162032',
+    borderRadius: 20,
+    padding: 24,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.accent,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
     marginBottom: 16,
   },
   sectionContent: {},
@@ -407,13 +418,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(66, 133, 244, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 16,
   },
   itemIcon: {
     fontSize: 16,
@@ -457,28 +468,32 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     color: COLORS.white,
-    marginBottom: 12,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: '#334155',
+    fontSize: 15,
   },
   updateButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: COLORS.accent,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 6,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   updateButtonText: {
-    color: COLORS.accent,
-    fontWeight: '600',
-    fontSize: 14,
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 15,
   },
   languageContainer: {
     paddingVertical: 12,
@@ -487,13 +502,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginTop: 12,
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    marginTop: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: '#334155',
   },
   dropdownText: {
     color: COLORS.textPrimary,
@@ -504,17 +519,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   infoBox: {
-    backgroundColor: 'rgba(66, 133, 244, 0.05)',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 20,
+    backgroundColor: 'rgba(66, 133, 244, 0.08)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(66, 133, 244, 0.1)',
+    borderColor: 'rgba(66, 133, 244, 0.2)',
   },
   infoText: {
-    color: '#4285F4',
-    fontSize: 12,
-    lineHeight: 18,
+    color: '#60A5FA',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '500',
   },
   dataItem: {
     marginBottom: 20,
@@ -531,66 +547,81 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 18,
   },
-  borderButton: {
+  exportButton: {
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    borderColor: '#334155',
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
-  borderButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: 13,
-    fontWeight: '500',
+  exportButtonText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
   deviceItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    padding: 12,
-    borderRadius: 12,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    padding: 14,
+    borderRadius: 16,
     marginTop: 8,
   },
   activeBadge: {
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.25)',
   },
   activeBadgeText: {
     color: '#22C55E',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   dangerZone: {
-    marginTop: 10,
-    paddingTop: 20,
+    marginTop: 16,
+    paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
   dangerTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.error,
+    fontWeight: '700',
+    color: '#EF4444',
   },
   dangerSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textMuted,
-    marginTop: 4,
-    marginBottom: 16,
+    marginTop: 6,
+    marginBottom: 20,
+    lineHeight: 18,
   },
   deleteButton: {
-    backgroundColor: COLORS.error,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     alignSelf: 'flex-start',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   deleteButtonText: {
-    color: COLORS.white,
-    fontWeight: '600',
+    color: '#EF4444',
+    fontWeight: '700',
     fontSize: 14,
   },
 });

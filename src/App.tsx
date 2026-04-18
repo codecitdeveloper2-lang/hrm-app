@@ -30,7 +30,7 @@ const NAV_ITEMS = [
   {key: 'Profile', label: 'Profile', icon: '👤'},
 ];
 
-import { useCheckCorrectionQuery } from './store/api/apiSlice';
+import { useCheckCorrectionQuery, useGetClockInStatusQuery } from './store/api/apiSlice';
 import CorrectionModal from './components/attendance/CorrectionModal';
 
 import {useAppSelector, useAppDispatch} from './store';
@@ -43,7 +43,14 @@ function AppContent() {
     pollingInterval: 60000,
   });
 
+  const { data: statusData } = useGetClockInStatusQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  const isClockedIn = statusData?.data?.isClockedIn === true;
+
   const requiresCorrection = 
+    isClockedIn &&
     correctionData?.success && 
     correctionData?.data?.requiresLogoutCorrection && 
     (correctionData?.data?.shiftId || correctionData?.data?.incompleteShift?.shiftId) &&

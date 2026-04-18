@@ -1,5 +1,5 @@
 // Global Theme & Design Tokens
-export const COLORS = {
+export const DARK_COLORS = {
   // Primary
   bgDark: '#0B0F1E',
   bgMid: '#111936',
@@ -29,6 +29,40 @@ export const COLORS = {
   warning: '#FFE66D',
   info: '#4DA8DA',
 };
+
+export const LIGHT_COLORS = {
+  // Primary
+  bgDark: '#F3F4F6', // light gray
+  bgMid: '#E5E7EB',
+  bgCard: '#FFFFFF', // solid white
+
+  // Accent
+  accent: '#6C63FF',
+  accentLight: '#8B83FF',
+  accentGlow: 'rgba(108, 99, 255, 0.15)',
+
+  // Glass
+  cardBg: '#FFFFFF',
+  cardBorder: 'rgba(0, 0, 0, 0.08)',
+  inputBg: '#F9FAFB',
+  inputBorder: 'rgba(0, 0, 0, 0.15)',
+  inputFocusBorder: '#6C63FF',
+
+  // Text
+  white: '#FFFFFF',
+  textPrimary: '#111827',
+  textSecondary: '#4B5563',
+  textMuted: '#9CA3AF',
+
+  // Status
+  error: '#EF4444',
+  success: '#10B981',
+  warning: '#F59E0B',
+  info: '#3B82F6',
+};
+
+export const COLORS = DARK_COLORS;
+
 
 export const SPACING = {
   xs: 4,
