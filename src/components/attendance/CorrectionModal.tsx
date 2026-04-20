@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView
 } from 'react-native';
 import { useCorrectLogoutMutation } from '../../store/api/apiSlice';
+import { useTheme } from '../../styles/ThemeProvider';
 
 interface CorrectionModalProps {
   isVisible: boolean;
@@ -24,6 +25,7 @@ interface CorrectionModalProps {
 }
 
 export default function CorrectionModal({ isVisible, data }: CorrectionModalProps) {
+  const { colors: THEME_COLORS } = useTheme();
   const [logoutTime, setLogoutTime] = useState('');
   const [reason, setReason] = useState('Forgot to clock out');
   const [remarks, setRemarks] = useState('');
@@ -36,10 +38,7 @@ export default function CorrectionModal({ isVisible, data }: CorrectionModalProp
     }
 
     try {
-      // Create a full ISO date-time string from data.shiftDate and logoutTime
       const datePart = data?.shiftDate?.split('T')[0];
-      
-      // Basic time parsing (supports "06:30 PM", "18:30", etc.)
       const timeMatch = logoutTime.match(/(\d+):(\d+)\s*(AM|PM)?/i);
       
       if (!timeMatch || !datePart) {
@@ -51,11 +50,9 @@ export default function CorrectionModal({ isVisible, data }: CorrectionModalProp
       const minutes = timeMatch[2];
       const ampm = timeMatch[3]?.toUpperCase();
 
-      // Handle AM/PM
       if (ampm === 'PM' && hours < 12) hours += 12;
       else if (ampm === 'AM' && hours === 12) hours = 0;
       else if (!ampm && hours < 12) {
-        // If no AM/PM provided, check if PM makes more sense (after login)
         const loginDate = new Date(data.loginTime);
         const amDate = new Date(`${datePart}T${hours.toString().padStart(2, '0')}:${minutes}:00.000Z`);
         const pmHours = hours + 12;
@@ -117,68 +114,68 @@ export default function CorrectionModal({ isVisible, data }: CorrectionModalProp
       transparent={true}
       animationType="fade"
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, {backgroundColor: 'rgba(15, 23, 42, 0.85)'}]}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.container}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, {backgroundColor: THEME_COLORS.cardBg}]}>
             <View style={styles.header}>
               <Text style={styles.headerIcon}>⚠</Text>
-              <Text style={styles.headerTitle}>Incomplete Shift</Text>
+              <Text style={[styles.headerTitle, {color: THEME_COLORS.textPrimary}]}>Incomplete Shift</Text>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
-              <Text style={styles.description}>
+              <Text style={[styles.description, {color: THEME_COLORS.textSecondary}]}>
                 You have an incomplete shift record from a previous day. You must submit a logout correction before you can continue using the app.
               </Text>
 
-              <View style={styles.infoBox}>
+              <View style={[styles.infoBox, {backgroundColor: THEME_COLORS.bgMid, borderColor: THEME_COLORS.cardBorder}]}>
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Shift Date:</Text>
-                  <Text style={styles.infoValue}>{formatDate(data?.shiftDate || '')}</Text>
+                  <Text style={[styles.infoLabel, {color: THEME_COLORS.textSecondary}]}>Shift Date:</Text>
+                  <Text style={[styles.infoValue, {color: THEME_COLORS.textPrimary}]}>{formatDate(data?.shiftDate || '')}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Login Time:</Text>
-                  <Text style={styles.infoValue}>{formatTime(data?.loginTime || '')}</Text>
+                  <Text style={[styles.infoLabel, {color: THEME_COLORS.textSecondary}]}>Login Time:</Text>
+                  <Text style={[styles.infoValue, {color: THEME_COLORS.textPrimary}]}>{formatTime(data?.loginTime || '')}</Text>
                 </View>
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Logout Time (HH:MM AM/PM)</Text>
+                <Text style={[styles.label, {color: THEME_COLORS.textSecondary}]}>Logout Time (HH:MM AM/PM)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, {backgroundColor: THEME_COLORS.bgMid, color: THEME_COLORS.textPrimary, borderColor: THEME_COLORS.cardBorder}]}
                   placeholder="e.g. 06:30 PM"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={THEME_COLORS.textMuted}
                   value={logoutTime}
                   onChangeText={setLogoutTime}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Reason</Text>
+                <Text style={[styles.label, {color: THEME_COLORS.textSecondary}]}>Reason</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, {backgroundColor: THEME_COLORS.bgMid, color: THEME_COLORS.textPrimary, borderColor: THEME_COLORS.cardBorder}]}
                   value={reason}
                   onChangeText={setReason}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Remarks</Text>
+                <Text style={[styles.label, {color: THEME_COLORS.textSecondary}]}>Remarks</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, {backgroundColor: THEME_COLORS.bgMid, color: THEME_COLORS.textPrimary, borderColor: THEME_COLORS.cardBorder}]}
                   multiline
                   numberOfLines={3}
                   placeholder="Add any additional details..."
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={THEME_COLORS.textMuted}
                   value={remarks}
                   onChangeText={setRemarks}
                 />
               </View>
 
               <TouchableOpacity
-                style={styles.submitBtn}
+                style={[styles.submitBtn, {backgroundColor: THEME_COLORS.error, shadowColor: THEME_COLORS.error}]}
                 onPress={handleSubmit}
                 disabled={isLoading}
               >
@@ -199,7 +196,6 @@ export default function CorrectionModal({ isVisible, data }: CorrectionModalProp
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -209,7 +205,6 @@ const styles = StyleSheet.create({
     maxWidth: 500,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
     maxHeight: '90%',
@@ -231,23 +226,19 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1E293B',
   },
   scroll: {
     flexGrow: 0,
   },
   description: {
     fontSize: 14,
-    color: '#64748B',
     lineHeight: 20,
     marginBottom: 20,
   },
   infoBox: {
-    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     marginBottom: 20,
   },
   infoRow: {
@@ -257,12 +248,10 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: '#64748B',
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 13,
-    color: '#1E293B',
     fontWeight: '700',
   },
   formGroup: {
@@ -271,30 +260,24 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F1F5F9',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1E293B',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
   },
   submitBtn: {
-    backgroundColor: '#EF4444',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#EF4444',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

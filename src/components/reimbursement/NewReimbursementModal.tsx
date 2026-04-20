@@ -1,3 +1,4 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React, { useState, useEffect } from 'react';
 import { 
     View, 
@@ -29,6 +30,8 @@ interface NewReimbursementModalProps {
 }
 
 export default function NewReimbursementModal({ isVisible, onClose, editingRequest }: NewReimbursementModalProps) {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
     const [date, setDate] = useState('');
@@ -393,7 +396,7 @@ export default function NewReimbursementModal({ isVisible, onClose, editingReque
     );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
     modalOverlay: {
         position: 'absolute',
         top: 0,

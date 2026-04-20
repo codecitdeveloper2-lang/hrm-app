@@ -1,3 +1,4 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -27,6 +28,8 @@ import Button from '../../components/common/Button';
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
+  const { colors: THEME_COLORS, isDarkMode } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -159,7 +162,10 @@ export default function LoginScreen() {
 
   return (
     <View style={globalStyles.screenContainer}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.bgDark} />
+      <StatusBar 
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        backgroundColor={THEME_COLORS.bgDark} 
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -315,7 +321,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   keyboardInner: {
     paddingHorizontal: 24,
     paddingVertical: 40,

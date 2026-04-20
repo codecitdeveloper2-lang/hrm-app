@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, TextInput, Dimensions, useWindowDimensions, Modal, TouchableWithoutFeedback } from 'react-native';
-import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES, globalStyles } from '../../styles';
+import { BORDER_RADIUS, SPACING, FONT_SIZES, globalStyles } from '../../styles';
+import { useTheme } from '../../styles/ThemeProvider';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -19,51 +20,63 @@ interface SettingItemProps {
   children?: React.ReactNode;
 }
 
-const SettingItem = ({ icon, title, subtitle, type, value, onValueChange, children }: SettingItemProps) => (
-  <View style={[styles.itemContainer, type === 'custom' && { flexDirection: 'column', alignItems: 'flex-start' }]}>
-    <View style={[styles.itemLeft, type === 'custom' && { width: '100%', marginBottom: 12 }]}>
-      <View style={styles.itemIconContainer}>
-        <Text style={styles.itemIcon}>{icon}</Text>
+const SettingItem = ({ icon, title, subtitle, type, value, onValueChange, children }: SettingItemProps) => {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = getStyles(THEME_COLORS);
+  
+  return (
+    <View style={[styles.itemContainer, type === 'custom' && { flexDirection: 'column', alignItems: 'flex-start' }]}>
+      <View style={[styles.itemLeft, type === 'custom' && { width: '100%', marginBottom: 12 }]}>
+        <View style={styles.itemIconContainer}>
+          <Text style={styles.itemIcon}>{icon}</Text>
+        </View>
+        <View style={styles.itemTextContainer}>
+          <Text style={styles.itemTitle}>{title}</Text>
+          <Text style={styles.itemSubtitle}>{subtitle}</Text>
+        </View>
       </View>
-      <View style={styles.itemTextContainer}>
-        <Text style={styles.itemTitle}>{title}</Text>
-        <Text style={styles.itemSubtitle}>{subtitle}</Text>
-      </View>
+      {type === 'toggle' && (
+        <View style={styles.itemRight}>
+          <Switch
+            value={value as boolean}
+            onValueChange={onValueChange}
+            trackColor={{ false: '#3E3E3E', true: THEME_COLORS.accent }}
+            thumbColor={value ? THEME_COLORS.white : '#f4f3f4'}
+          />
+        </View>
+      )}
+      {type === 'custom' && (
+        <View style={[styles.itemRight, { marginLeft: 0, width: '100%' }]}>
+          {children}
+        </View>
+      )}
     </View>
-    {type === 'toggle' && (
-      <View style={styles.itemRight}>
-        <Switch
-          value={value as boolean}
-          onValueChange={onValueChange}
-          trackColor={{ false: '#3E3E3E', true: COLORS.accent }}
-          thumbColor={value ? COLORS.white : '#f4f3f4'}
-        />
-      </View>
-    )}
-    {type === 'custom' && (
-      <View style={[styles.itemRight, { marginLeft: 0, width: '100%' }]}>
-        {children}
-      </View>
-    )}
-  </View>
-);
+  );
+};
 
 interface SettingSectionProps {
   title: string;
   children: React.ReactNode;
 }
 
-const SettingSection = ({ title, children }: SettingSectionProps) => (
-  <View style={styles.sectionCard}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    <View style={styles.sectionContent}>{children}</View>
-  </View>
-);
+const SettingSection = ({ title, children }: SettingSectionProps) => {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = getStyles(THEME_COLORS);
+  return (
+    <View style={styles.sectionCard}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionContent}>{children}</View>
+    </View>
+  );
+};
 
 export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayProps) {
   const { width } = useWindowDimensions();
   const isLargeScreen = width > 1024;
   
+  const { colors: themeColors, isDarkMode, toggleTheme } = useTheme();
+  const styles = getStyles(themeColors);
+
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
@@ -72,7 +85,6 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
   });
 
   const [appearance, setAppearance] = useState({
-    darkMode: false,
     compactMode: false,
     accentColor: '#4285F4'
   });
@@ -180,19 +192,19 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
                       <TextInput 
                         style={styles.input} 
                         placeholder="Current Password" 
-                        placeholderTextColor={COLORS.textMuted}
+                        placeholderTextColor={themeColors.textMuted}
                         secureTextEntry 
                       />
                       <TextInput 
                         style={styles.input} 
                         placeholder="New Password (min 8 characters)" 
-                        placeholderTextColor={COLORS.textMuted}
+                        placeholderTextColor={themeColors.textMuted}
                         secureTextEntry 
                       />
                       <TextInput 
                         style={styles.input} 
                         placeholder="Confirm New Password" 
-                        placeholderTextColor={COLORS.textMuted}
+                        placeholderTextColor={themeColors.textMuted}
                         secureTextEntry 
                       />
                       <TouchableOpacity style={styles.updateButton}>
@@ -211,8 +223,8 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
                     title="Dark Mode" 
                     subtitle="Switch to dark theme" 
                     type="toggle" 
-                    value={appearance.darkMode}
-                    onValueChange={(val) => setAppearance({...appearance, darkMode: val})}
+                    value={isDarkMode}
+                    onValueChange={toggleTheme}
                   />
                   <SettingItem 
                     icon="🖥️" 
@@ -338,7 +350,7 @@ export default function SettingsOverlay({ isVisible, onClose }: SettingsOverlayP
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS: any) => StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -351,14 +363,14 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '96%',
     height: '88%',
-    backgroundColor: '#0F172A',
+    backgroundColor: COLORS.bgDark,
     borderRadius: 28,
     padding: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: COLORS.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 24,
   },
@@ -371,7 +383,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.textPrimary,
   },
   headerSubtitle: {
     fontSize: 14,
@@ -379,12 +391,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   saveBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
     marginRight: 12,
   },
   saveBadgeText: {
@@ -396,14 +408,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#1E293B',
+    backgroundColor: COLORS.bgMid,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.cardBorder,
   },
   closeButtonText: {
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     fontSize: 18,
   },
   grid: {
@@ -416,15 +428,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionCard: {
-    backgroundColor: '#162032',
+    backgroundColor: COLORS.bgCard,
     borderRadius: 20,
     padding: 24,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: COLORS.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 4,
   },
@@ -443,7 +455,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: COLORS.cardBorder,
   },
   itemLeft: {
     flexDirection: 'row',
@@ -454,7 +466,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(66, 133, 244, 0.1)',
+    backgroundColor: COLORS.accentGlow,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -491,7 +503,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   colorCircleActive: {
-    borderColor: COLORS.white,
+    borderColor: COLORS.accent,
     transform: [{ scale: 1.1 }],
   },
   passwordSection: {
@@ -501,14 +513,14 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: COLORS.bgMid,
     borderRadius: 12,
     paddingHorizontal: 18,
     paddingVertical: 14,
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.cardBorder,
     fontSize: 15,
   },
   updateButton: {
@@ -535,13 +547,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: COLORS.bgMid,
     borderRadius: 12,
     paddingHorizontal: 18,
     paddingVertical: 14,
     marginTop: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.cardBorder,
   },
   dropdownOpen: {
     borderBottomLeftRadius: 0,
@@ -557,9 +569,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   dropdownList: {
-    backgroundColor: '#1E293B',
+    backgroundColor: COLORS.bgMid,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.cardBorder,
     borderTopWidth: 0,
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
@@ -568,29 +580,29 @@ const styles = StyleSheet.create({
   dropdownItem: {
     paddingVertical: 12,
     paddingHorizontal: 18,
-    backgroundColor: '#1E293B',
+    backgroundColor: COLORS.bgMid,
   },
   dropdownItemSelected: {
-    backgroundColor: '#1D4ED8',
+    backgroundColor: COLORS.accent,
   },
   dropdownItemText: {
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     fontSize: 14,
   },
   dropdownItemTextSelected: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontWeight: '600',
   },
   infoBox: {
-    backgroundColor: 'rgba(66, 133, 244, 0.08)',
+    backgroundColor: COLORS.accentGlow,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(66, 133, 244, 0.2)',
+    borderColor: COLORS.cardBorder,
   },
   infoText: {
-    color: '#60A5FA',
+    color: COLORS.accent,
     fontSize: 13,
     lineHeight: 20,
     fontWeight: '500',
@@ -612,19 +624,15 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     borderWidth: 1,
-    borderColor: '#334155',
-    backgroundColor: '#1E293B',
+    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.bgMid,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignSelf: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
   },
   exportButtonText: {
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -632,9 +640,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: COLORS.bgMid,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.cardBorder,
     padding: 14,
     borderRadius: 16,
     marginTop: 8,
@@ -657,7 +665,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: COLORS.cardBorder,
   },
   dangerTitle: {
     fontSize: 15,

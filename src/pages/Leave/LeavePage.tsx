@@ -1,3 +1,4 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React, { useState } from 'react';
 import { 
   View, 
@@ -10,7 +11,7 @@ import {
   Alert, 
   RefreshControl 
 } from 'react-native';
-import { COLORS, globalStyles } from '../../styles';
+import { globalStyles } from '../../styles';
 import StatCard from '../../components/dashboard/StatCard';
 import { 
   useGetMyStatsQuery, 
@@ -25,6 +26,8 @@ import ApplyLeaveModal from '../../components/leave/ApplyLeaveModal';
  * LeavePage - Optimized for Mobile with 100% logic parity to web CRM
  */
 export default function LeavePage() {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -70,7 +73,6 @@ export default function LeavePage() {
     );
   };
 
-  // Helper variables
   const stats = statsResp?.data?.summary || { available: 0, used: 0, pending: 0, totalAllocated: 0 };
   const balances = balanceResp?.data?.balances || [];
   const requests = leavesResp?.data || [];
@@ -87,17 +89,14 @@ export default function LeavePage() {
 
   return (
     <View style={globalStyles.screenContainer}>
-        {/* Floating Action Button for Apply Leave (Optional, but let's keep it in the flow for now) */}
-        
         <ScrollView 
             style={styles.container} 
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             refreshControl={
-                <RefreshControl refreshing={statsLoading || balanceLoading || leavesLoading} onRefresh={handleRefresh} tintColor="#6C63FF" />
+                <RefreshControl refreshing={statsLoading || balanceLoading || leavesLoading} onRefresh={handleRefresh} tintColor={THEME_COLORS.accent} />
             }
         >
-            {/* Minimalist Top Actions - No redundant header */}
             <View style={styles.topActions}>
                 <TouchableOpacity style={styles.applyBtn} onPress={() => setIsModalVisible(true)}>
                     <Text style={styles.applyBtnText}>+ Apply Leave</Text>
@@ -107,7 +106,6 @@ export default function LeavePage() {
                 </TouchableOpacity>
             </View>
 
-            {/* Hero Portal Banner (Matches Web) */}
             <View style={styles.heroBanner}>
                 <View style={styles.heroContent}>
                     <View style={styles.heroBadge}>
@@ -121,7 +119,6 @@ export default function LeavePage() {
                 <Text style={styles.heroDecoration}>✈️</Text>
             </View>
 
-            {/* Key Performance Indicators */}
             <View style={styles.statsRow}>
                 <View style={styles.statCol}>
                     <StatCard title="Available" value={stats.available} accentColor="#3B82F6" icon="🏖️" />
@@ -137,7 +134,6 @@ export default function LeavePage() {
                 </View>
             </View>
 
-            {/* Balance Details List */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Balance Details</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.balanceList}>
@@ -173,12 +169,11 @@ export default function LeavePage() {
                         );
                     })}
                     {balances.length === 0 && !balanceLoading && (
-                        <Text style={styles.emptyText}>No balance data found.</Text>
+                        <Text style={[styles.emptyText, {color: THEME_COLORS.textSecondary}]}>No balance data found.</Text>
                     )}
                 </ScrollView>
             </View>
 
-            {/* Application History */}
             <View style={[styles.section, styles.historyContainer]}>
                 <View style={[styles.historyHeader, { zIndex: 10 }]}>
                     <Text style={styles.historyTitle}>My Requests</Text>
@@ -220,10 +215,10 @@ export default function LeavePage() {
                         {requests.map((request: any) => {
                             const isPending = request.status === 'pending';
                             const statusColors: any = {
-                                pending: { bg: '#FFFBEB', text: '#D97706', icon: '⏳' },
-                                approved: { bg: '#F0FDF4', text: '#16A34A', icon: '✓' },
-                                rejected: { bg: '#FEF2F2', text: '#DC2626', icon: '✕' },
-                                cancelled: { bg: '#F1F5F9', text: '#64748B', icon: '⃠' }
+                                pending: { bg: THEME_COLORS.warning + '20', text: THEME_COLORS.warning, icon: '⏳' },
+                                approved: { bg: THEME_COLORS.success + '20', text: THEME_COLORS.success, icon: '✓' },
+                                rejected: { bg: THEME_COLORS.error + '20', text: THEME_COLORS.error, icon: '✕' },
+                                cancelled: { bg: THEME_COLORS.textMuted + '20', text: THEME_COLORS.textMuted, icon: '⃠' }
                             };
                             const conf = statusColors[request.status] || statusColors.cancelled;
                             
@@ -301,7 +296,7 @@ export default function LeavePage() {
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 24, paddingBottom: 80 },
   
@@ -312,11 +307,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   applyBtn: {
-    backgroundColor: '#6C63FF', // Static purple to avoid caching/theme issues
+    backgroundColor: COLORS.accent,
     paddingHorizontal: 22,
     paddingVertical: 14,
     borderRadius: 18,
-    shadowColor: '#6C63FF',
+    shadowColor: COLORS.accent,
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -324,19 +319,19 @@ const styles = StyleSheet.create({
   },
   applyBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
   refreshBtn: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: COLORS.cardBg,
     width: 48,
     height: 48,
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: COLORS.cardBorder,
   },
-  refreshIcon: { fontSize: 20 },
+  refreshIcon: { fontSize: 20, color: COLORS.textPrimary },
 
   heroBanner: {
-    backgroundColor: '#6C63FF',
+    backgroundColor: COLORS.accent,
     borderRadius: 28,
     padding: 24,
     marginBottom: 28,
@@ -371,13 +366,15 @@ const styles = StyleSheet.create({
   statCol: { width: '48%', marginBottom: 14 },
   
   section: { marginVertical: 18 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginBottom: 16 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 16 },
   balanceList: { paddingRight: 24, gap: 14 },
   breakdownCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 24,
     padding: 20,
     width: 220,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 15,
@@ -386,18 +383,20 @@ const styles = StyleSheet.create({
   breakdownHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
   typeIconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   typeIconText: { fontSize: 20 },
-  leaveTypeName: { fontSize: 15, fontWeight: '700', color: '#1E293B', flex: 1 },
+  leaveTypeName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, flex: 1 },
   breakdownStats: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  breakdownLabel: { fontSize: 11, color: '#94A3B8', fontWeight: '600' },
-  breakdownValue: { fontSize: 20, fontWeight: '800', color: '#1E293B' },
-  progressBar: { height: 8, backgroundColor: '#F1F5F9', borderRadius: 4, marginTop: 18, overflow: 'hidden' },
+  breakdownLabel: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600' },
+  breakdownValue: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
+  progressBar: { height: 8, backgroundColor: COLORS.inputBg, borderRadius: 4, marginTop: 18, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
-  emptyText: { color: 'rgba(255,255,255,0.5)', fontSize: 14 },
+  emptyText: { fontSize: 14 },
 
   historyContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 16,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   historyHeader: {
     flexDirection: 'row',
@@ -408,7 +407,7 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: COLORS.textPrimary,
   },
   dropdownContainer: {
     position: 'relative',
@@ -420,15 +419,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.cardBg,
     borderWidth: 1,
-    borderColor: '#3B82F6',
+    borderColor: COLORS.accent,
     gap: 8,
   },
-  dropdownButtonIcon: { color: '#3B82F6', fontSize: 13, marginTop: -2 },
-  dropdownButtonIconArrow: { color: '#3B82F6', fontSize: 13, marginLeft: 2, fontWeight: '700' },
+  dropdownButtonIcon: { color: COLORS.accent, fontSize: 13, marginTop: -2 },
+  dropdownButtonIconArrow: { color: COLORS.accent, fontSize: 13, marginLeft: 2, fontWeight: '700' },
   dropdownButtonText: {
-    color: '#3B82F6',
+    color: COLORS.accent,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -436,7 +435,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 40,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 8,
     paddingVertical: 8,
     width: 140,
@@ -446,48 +445,46 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: COLORS.cardBorder,
   },
   dropdownMenuItem: {
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   dropdownMenuItemActive: {
-    backgroundColor: '#F0F5FF',
+    backgroundColor: COLORS.accentGlow,
   },
   dropdownMenuItemText: {
     fontSize: 13,
-    color: '#475569',
+    color: COLORS.textSecondary,
     fontWeight: '500',
   },
   dropdownMenuItemTextActive: {
-    color: '#3B82F6',
+    color: COLORS.accent,
     fontWeight: '600',
   },
   requestListBlock: { gap: 12 },
   requestCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   requestCardLeft: { flexDirection: 'row', gap: 14, flex: 1 },
   requestCardIconBox: {
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.cardBg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   requestCardIcon: { fontSize: 20 },
-  requestCardType: { fontSize: 15, fontWeight: '700', color: '#1E293B', marginBottom: 2 },
-  requestCardMeta: { fontSize: 12, color: '#64748B', marginBottom: 4 },
-  requestCardReason: { fontSize: 12, color: '#94A3B8' },
+  requestCardType: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 2 },
+  requestCardMeta: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 4 },
+  requestCardReason: { fontSize: 12, color: COLORS.textMuted },
   requestCardRight: { alignItems: 'flex-end', gap: 10 },
   statusPill: {
     flexDirection: 'row',
@@ -503,33 +500,35 @@ const styles = StyleSheet.create({
   },
   cancelActionLink: { color: COLORS.error, fontSize: 12, fontWeight: '600' },
   emptyStateContainerBlock: { padding: 40, alignItems: 'center' },
-  emptyTextBlock: { color: '#94A3B8', fontSize: 14 },
+  emptyTextBlock: { color: COLORS.textMuted, fontSize: 14 },
 
   policyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: COLORS.cardBg,
     padding: 16,
     borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
-  policyBullet: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#6C63FF' },
-  policyName: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
-  policyMeta: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+  policyBullet: { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.accent },
+  policyName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  policyMeta: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   emptyPolicyText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: COLORS.textMuted,
     fontSize: 14,
     marginBottom: 20,
     fontStyle: 'italic',
   },
   noteBox: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: COLORS.info + '15',
     borderRadius: 16,
     padding: 16,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: COLORS.info + '30',
   },
   noteTitleRow: {
     flexDirection: 'row',
@@ -538,18 +537,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   noteIcon: {
-    color: '#3B82F6',
+    color: COLORS.info,
     fontSize: 14,
     fontWeight: '800',
   },
   noteTitle: {
-    color: '#3B82F6',
+    color: COLORS.info,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   noteText: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: COLORS.textSecondary,
     fontSize: 12,
     lineHeight: 18,
   },

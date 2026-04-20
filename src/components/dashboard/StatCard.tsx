@@ -1,21 +1,21 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React from 'react';
-import {View, Text, StyleSheet, Dimensions, useWindowDimensions} from 'react-native';
-import {COLORS} from '../../styles';
+import {View, Text, StyleSheet, useWindowDimensions} from 'react-native';
 
 export default function StatCard({
   title,
   value,
   subtext,
-  subtextColor = COLORS.textSecondary,
+  subtextColor,
   icon,
-  accentColor = COLORS.accent
+  accentColor
 }: any) {
-  const { width } = useWindowDimensions();
-  const isMobile = width < 700;
-
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
+  
   return (
     <View style={styles.card}>
-      <View style={[styles.accentBar, {backgroundColor: accentColor}]} />
+      <View style={[styles.accentBar, {backgroundColor: accentColor || THEME_COLORS.accent}]} />
       
       <View style={styles.iconContainer}>
         {icon && <Text style={styles.icon}>{icon}</Text>}
@@ -26,7 +26,7 @@ export default function StatCard({
 
       {subtext && (
         <View style={styles.subtextRow}>
-          <Text style={[styles.subtext, {color: subtextColor}]}>
+          <Text style={[styles.subtext, {color: subtextColor || THEME_COLORS.textSecondary}]}>
             {subtext}
           </Text>
         </View>
@@ -35,9 +35,9 @@ export default function StatCard({
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 16,
     padding: 20,
     flex: 1,
@@ -51,6 +51,8 @@ const styles = StyleSheet.create({
     elevation: 3,
     position: 'relative',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   accentBar: {
     position: 'absolute',
@@ -63,7 +65,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -74,13 +76,13 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#1E293B',
+    color: COLORS.textPrimary,
     marginBottom: 4,
   },
   title: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     marginBottom: 8,
   },
   subtextRow: {

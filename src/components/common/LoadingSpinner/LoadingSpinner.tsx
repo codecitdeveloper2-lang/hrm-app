@@ -1,3 +1,4 @@
+import { useTheme } from '../../../styles/ThemeProvider';
 import React, {useEffect, useRef} from 'react';
 import {View, Animated, StyleSheet} from 'react-native';
 import {COLORS} from '../../../styles';
@@ -11,6 +12,8 @@ export default function LoadingSpinner({
   size = 40,
   color = COLORS.accent,
 }: LoadingSpinnerProps) {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -47,7 +50,7 @@ export default function LoadingSpinner({
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',

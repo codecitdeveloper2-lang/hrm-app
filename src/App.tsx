@@ -92,17 +92,17 @@ function AppContent() {
 }
 
 import {SafeAreaProvider} from 'react-native-safe-area-context';
-
 import {Provider} from 'react-redux';
 import {store} from './store';
+import { ThemeProvider } from './styles/ThemeProvider';
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <Provider store={store}>
-        <MainLayout>
+        <ThemeProvider>
           <AppContent />
-        </MainLayout>
+        </ThemeProvider>
       </Provider>
     </SafeAreaProvider>
   );

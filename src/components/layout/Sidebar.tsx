@@ -1,3 +1,4 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Dimensions } from 'react-native';
 import { COLORS } from '../../styles';
@@ -21,6 +22,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ items, activeKey, onSelect, isOpen, onClose, isMobile }: SidebarProps) {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const slideAnim = useRef(new Animated.Value(isMobile ? -SIDEBAR_WIDTH : 0)).current;
 
   useEffect(() => {
@@ -76,12 +79,12 @@ export default function Sidebar({ items, activeKey, onSelect, isOpen, onClose, i
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: {
     width: SIDEBAR_WIDTH,
     backgroundColor: COLORS.bgMid,
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.06)',
+    borderRightColor: COLORS.cardBorder,
     paddingVertical: 24,
   },
   mobileContainer: {
@@ -91,7 +94,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 100,
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.1)',
+    borderRightColor: COLORS.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.25,
@@ -119,7 +122,7 @@ const styles = StyleSheet.create({
   brandText: {
     fontSize: 17,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     letterSpacing: 0.3,
   },
   brandSubtitle: {
@@ -143,7 +146,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   navItemActive: {
-    backgroundColor: 'rgba(108, 99, 255, 0.12)',
+    backgroundColor: COLORS.accentGlow,
   },
   navIcon: {
     fontSize: 18,
@@ -155,7 +158,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   navLabelActive: {
-    color: COLORS.white,
+    color: COLORS.accent,
     fontWeight: '600',
   },
 });

@@ -1,3 +1,4 @@
+import { useTheme } from '../../../styles/ThemeProvider';
 import React from 'react';
 import {
   TouchableOpacity,
@@ -33,6 +34,8 @@ export default function Button({
   style,
   textStyle,
 }: ButtonProps) {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -75,7 +78,10 @@ export default function Button({
         onPressOut={handlePressOut}
         disabled={disabled || loading}>
         {loading ? (
-          <ActivityIndicator color={COLORS.white} size="small" />
+          <ActivityIndicator 
+            color={variant === 'primary' ? THEME_COLORS.white : THEME_COLORS.accent} 
+            size="small" 
+          />
         ) : (
           <>
             {icon}
@@ -87,7 +93,7 @@ export default function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   base: {
     borderRadius: BORDER_RADIUS.lg,
     flexDirection: 'row',
@@ -105,9 +111,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   secondaryBg: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: COLORS.cardBg,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: COLORS.cardBorder,
   },
   ghostBg: {
     backgroundColor: 'transparent',
@@ -119,8 +125,8 @@ const styles = StyleSheet.create({
   // Text
   label: {fontWeight: '700', letterSpacing: 0.8},
   primaryText: {color: COLORS.white, fontSize: 16},
-  secondaryText: {color: COLORS.textSecondary, fontSize: 14},
-  ghostText: {color: COLORS.accentLight, fontSize: 14},
+  secondaryText: {color: COLORS.textPrimary, fontSize: 14},
+  ghostText: {color: COLORS.accent, fontSize: 14},
   smText: {fontSize: 13},
   mdText: {fontSize: 15},
   lgText: {fontSize: 16},

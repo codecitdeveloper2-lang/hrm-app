@@ -1,3 +1,4 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React, {useState} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
 import {COLORS, globalStyles} from '../../styles';
@@ -6,6 +7,8 @@ import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 
 export default function UsersPage() {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const [activeTab, setActiveTab] = useState('All');
 
   const columns = [
@@ -56,7 +59,7 @@ export default function UsersPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: {
     padding: 24,
     flex: 1,
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
   activeTab: {
     backgroundColor: COLORS.bgCard,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: COLORS.cardBorder,
   },
   tabText: {
     fontSize: 14,
@@ -85,7 +88,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeTabText: {
-    color: COLORS.white,
+    color: COLORS.accent,
     fontWeight: '700',
   },
 });

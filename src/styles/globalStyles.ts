@@ -1,7 +1,18 @@
 import {StyleSheet} from 'react-native';
-import {COLORS, SPACING, BORDER_RADIUS} from './theme';
+import {COLORS, currentTheme, SPACING, BORDER_RADIUS} from './theme';
 
-export const globalStyles = StyleSheet.create({
+let _cachedGTheme: any = null;
+let _cachedGStyles: any = null;
+export const globalStyles = new Proxy({} as unknown as ReturnType<typeof _getGlobalStyles>, {
+  get: (_, p) => {
+    if (_cachedGTheme !== currentTheme || !_cachedGStyles) {
+      _cachedGTheme = currentTheme;
+      _cachedGStyles = _getGlobalStyles();
+    }
+    return _cachedGStyles[p as keyof typeof _cachedGStyles];
+  }
+});
+const _getGlobalStyles = () => StyleSheet.create({
   // Screen containers
   screenContainer: {
     flex: 1,
@@ -32,7 +43,7 @@ export const globalStyles = StyleSheet.create({
   heading: {
     fontSize: 28,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     letterSpacing: 0.5,
   },
   subheading: {

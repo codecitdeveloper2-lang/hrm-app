@@ -1,28 +1,24 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, ActivityIndicator, Alert, RefreshControl } from 'react-native';
-import { COLORS, globalStyles } from '../../styles';
+import { globalStyles } from '../../styles';
 import StatCard from '../../components/dashboard/StatCard';
 import { 
   useGetMyReimbursementsQuery, 
-  useGetReimbursementTypesQuery, 
   useDeleteReimbursementMutation 
 } from '../../store/api/apiSlice';
 import { formatDate, formatCurrency } from '../../utils';
 import NewReimbursementModal from '../../components/reimbursement/NewReimbursementModal';
 
 export default function ReimbursementPage() {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const isResponsive = width < 1024;
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRequest, setEditingRequest] = useState<any>(null);
 
-  React.useEffect(() => {
-    console.log('Modal Visibility Changed:', isModalVisible);
-  }, [isModalVisible]);
-
-  // Queries
   const { 
     data: reimbursementsResp, 
     isLoading: requestsLoading, 
@@ -68,10 +64,6 @@ export default function ReimbursementPage() {
   };
 
   const handleNewRequest = () => {
-    console.log('--- NEW REQUEST BUTTON CLICKED ---');
-    if (__DEV__) {
-      // Alert.alert("Debug", "New Request button clicked!");
-    }
     setEditingRequest(null);
     setIsModalVisible(true);
   };
@@ -84,23 +76,23 @@ export default function ReimbursementPage() {
       approved: requests.filter((r: any) => r.status === 'approved').length,
       settledAmount: requests
           .filter((r: any) => r.status === 'approved')
-          .reduce((sum: number, r: any) => sum + r.amount, 0),
+          .reduce((sum: number, r: any) => sum + (r.amount || 0), 0),
   };
 
   const STAT_CARDS = [
     { title: 'Total Requests', value: stats.total.toString(), accentColor: '#3B82F6', icon: '📝' },
     { title: 'Pending', value: stats.pending.toString(), accentColor: '#F59E0B', icon: '⏳' },
     { title: 'Approved', value: stats.approved.toString(), accentColor: '#10B981', icon: '✅' },
-    { title: 'Rejected/Other', value: (stats.total - stats.pending - stats.approved).toString(), accentColor: '#EF4444', icon: '❌' },
+    { title: 'Rejected', value: (stats.total - stats.pending - stats.approved).toString(), accentColor: '#EF4444', icon: '❌' },
   ];
 
   const getStatusStyle = (status: string) => {
       switch(status) {
-          case 'pending': return { bg: '#FFFBEB', color: '#D97706', dot: '#F59E0B' };
-          case 'approved': return { bg: '#F0FDF4', color: '#16A34A', dot: '#22C55E' };
-          case 'rejected': return { bg: '#FEF2F2', color: '#DC2626', dot: '#EF4444' };
-          case 'cancelled': return { bg: '#F8FAFC', color: '#64748B', dot: '#94A3B8' };
-          default: return { bg: '#F1F5F9', color: '#475569', dot: '#64748B' };
+          case 'pending': return { bg: THEME_COLORS.warning + '20', color: THEME_COLORS.warning, dot: THEME_COLORS.warning };
+          case 'approved': return { bg: THEME_COLORS.success + '20', color: THEME_COLORS.success, dot: THEME_COLORS.success };
+          case 'rejected': return { bg: THEME_COLORS.error + '20', color: THEME_COLORS.error, dot: THEME_COLORS.error };
+          case 'cancelled': return { bg: THEME_COLORS.bgMid, color: THEME_COLORS.textMuted, dot: THEME_COLORS.textMuted };
+          default: return { bg: THEME_COLORS.bgMid, color: THEME_COLORS.textSecondary, dot: THEME_COLORS.textSecondary };
       }
   };
 
@@ -111,11 +103,10 @@ export default function ReimbursementPage() {
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             refreshControl={
-                <RefreshControl refreshing={requestsLoading} onRefresh={handleRefresh} tintColor={COLORS.accent} />
+                <RefreshControl refreshing={requestsLoading} onRefresh={handleRefresh} tintColor={THEME_COLORS.accent} />
             }
         >
         
-        {/* Top Actions */}
         <View style={styles.topActions}>
             <TouchableOpacity style={styles.applyBtn} onPress={handleNewRequest}>
                 <Text style={styles.applyBtnText}>+ New Request</Text>
@@ -125,7 +116,6 @@ export default function ReimbursementPage() {
             </TouchableOpacity>
         </View>
 
-        {/* Hero Section */}
         <View style={styles.heroBanner}>
             <View style={styles.heroContent}>
                 <View style={styles.heroBadge}>
@@ -133,7 +123,7 @@ export default function ReimbursementPage() {
                 </View>
                 <Text style={styles.heroTitle}>Need a Refund?</Text>
                 <Text style={styles.heroSubtitle}>
-                    Submit your business expenses easily and track your reimbursement claims in real-time.
+                    Submit your business expenses easily and track your claims in real-time.
                 </Text>
             </View>
             <View style={styles.settledBox}>
@@ -147,7 +137,6 @@ export default function ReimbursementPage() {
             </View>
         </View>
 
-        {/* Stats Grid */}
         <View style={styles.statsRow}>
             {STAT_CARDS.map((stat, index) => (
                 <View key={index} style={{ width: isMobile ? '100%' : '48%', marginBottom: 12 }}>
@@ -156,9 +145,8 @@ export default function ReimbursementPage() {
             ))}
         </View>
 
-        {/* Request List Section */}
         <View style={styles.section}>
-            <Text style={styles.sectionTitle}>My Requests</Text>
+            <Text style={styles.sectionTitle}>My Claims</Text>
             <View style={styles.requestList}>
                 {requests.map((request: any) => {
                     const statusStyle = getStatusStyle(request.status);
@@ -176,7 +164,7 @@ export default function ReimbursementPage() {
                                 </View>
                                 <View style={{alignItems: 'flex-end'}}>
                                     <Text style={styles.amountText}>{formatCurrency(request.amount)}</Text>
-                                    <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.bg }]}>
+                                    <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
                                         <Text style={[styles.statusDot, { color: statusStyle.dot }]}>●</Text>
                                         <Text style={[styles.statusText, { color: statusStyle.color }]}>
                                             {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
@@ -211,10 +199,10 @@ export default function ReimbursementPage() {
                 {requests.length === 0 && !requestsLoading && (
                     <View style={styles.emptyBox}>
                         <Text style={{fontSize: 50, marginBottom: 15}}>📑</Text>
-                        <Text style={styles.emptyTitle}>No requests found</Text>
+                        <Text style={styles.emptyTitle}>No claims found</Text>
                         <Text style={styles.emptySubtitle}>You haven't submitted any reimbursement requests yet.</Text>
                         <TouchableOpacity style={styles.emptyBtn} onPress={handleNewRequest}>
-                            <Text style={styles.emptyBtnText}>Create Request</Text>
+                            <Text style={styles.emptyBtnText}>Create Claim</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -232,7 +220,7 @@ export default function ReimbursementPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
   topActions: {
@@ -242,16 +230,16 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   refreshBtn: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: COLORS.cardBg,
     width: 38,
     height: 38,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: COLORS.cardBorder,
   },
-  refreshIcon: { fontSize: 16 },
+  refreshIcon: { fontSize: 16, color: COLORS.textPrimary },
   applyBtn: {
     backgroundColor: COLORS.accent,
     paddingHorizontal: 16,
@@ -313,14 +301,16 @@ const styles = StyleSheet.create({
   },
   
   section: { marginTop: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#FFF', marginBottom: 15 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 15 },
   requestList: { gap: 12 },
   
   requestItem: {
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 20,
     padding: 16,
     marginBottom: 4,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   requestMain: {
     flexDirection: 'row',
@@ -331,14 +321,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconText: { fontSize: 20 },
-  requestTitle: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
-  requestMeta: { fontSize: 12, color: '#64748B', marginTop: 2 },
-  amountText: { fontSize: 16, fontWeight: '800', color: '#1E293B', marginBottom: 4 },
+  requestTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  requestMeta: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  amountText: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 4 },
   
   statusBadge: {
     flexDirection: 'row',
@@ -358,36 +348,36 @@ const styles = StyleSheet.create({
     marginTop: 15,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: COLORS.cardBorder,
   },
   actionBtn: { padding: 4 },
   editBtnText: { color: COLORS.accent, fontWeight: '700', fontSize: 13 },
   deleteBtnText: { color: COLORS.error, fontWeight: '700', fontSize: 13 },
   
   rejectionBox: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: COLORS.error + '10',
     padding: 12,
     borderRadius: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: COLORS.error + '20',
   },
-  rejectionLabel: { fontSize: 11, fontWeight: '700', color: '#B91C1C', marginBottom: 2 },
-  rejectionText: { fontSize: 11, color: '#7F1D1D', lineHeight: 16 },
+  rejectionLabel: { fontSize: 11, fontWeight: '700', color: COLORS.error, marginBottom: 2 },
+  rejectionText: { fontSize: 11, color: COLORS.textSecondary, lineHeight: 16 },
   
   emptyBox: {
     padding: 40,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 24,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: COLORS.cardBorder,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#FFF', marginBottom: 8 },
-  emptySubtitle: { fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 24 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8 },
+  emptySubtitle: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 24 },
   emptyBtn: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.accent,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,

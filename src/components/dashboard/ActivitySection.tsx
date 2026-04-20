@@ -1,22 +1,16 @@
 import React from 'react';
 import {View, Text, StyleSheet, ActivityIndicator} from 'react-native';
 import {useGetRecentActivityQuery} from '../../store/api/apiSlice';
+import { useTheme } from '../../styles/ThemeProvider';
 
-interface ActivityItemProps {
-  time: string;
-  type: string;
-  description: string;
-  isLast?: boolean;
-}
-
-const ActivityItem = ({ time, type, title, description, duration, isLast }: any) => {
+const ActivityItem = ({ time, title, description, duration, type, isLast, COLORS }: any) => {
   const getIconColor = () => {
     switch (type) {
       case 'CLOCK_IN': return '#10B981'; // Green
       case 'CLOCK_OUT': return '#EF4444'; // Red
       case 'BREAK_START': return '#F59E0B'; // Amber
       case 'BREAK_END': return '#3B82F6'; // Blue
-      default: return '#6C63FF'; // Purple
+      default: return COLORS.accent;
     }
   };
 
@@ -24,15 +18,15 @@ const ActivityItem = ({ time, type, title, description, duration, isLast }: any)
     <View style={styles.activityItem}>
       <View style={styles.timelineContainer}>
         <View style={[styles.timelineDot, { backgroundColor: getIconColor() }]} />
-        {!isLast && <View style={styles.timelineLine} />}
+        {!isLast && <View style={[styles.timelineLine, {backgroundColor: COLORS.cardBorder}]} />}
       </View>
       <View style={styles.activityContent}>
         <View style={styles.activityHeader}>
-          <Text style={styles.activityTitle}>{title}</Text>
-          <Text style={styles.activityTime}>{time}</Text>
+          <Text style={[styles.activityTitle, {color: COLORS.textPrimary}]}>{title}</Text>
+          <Text style={[styles.activityTime, {color: COLORS.textSecondary}]}>{time}</Text>
         </View>
         {(description || duration) && (
-          <Text style={styles.activityDesc}>
+          <Text style={[styles.activityDesc, {color: COLORS.textSecondary}]}>
             {description}{duration ? ` • ${duration}` : ''}
           </Text>
         )}
@@ -42,6 +36,7 @@ const ActivityItem = ({ time, type, title, description, duration, isLast }: any)
 };
 
 export default function ActivitySection() {
+  const { colors: THEME_COLORS } = useTheme();
   const today = new Date().toISOString().split('T')[0];
   const { data, isLoading, isError } = useGetRecentActivityQuery({ date: today });
   
@@ -63,20 +58,20 @@ export default function ActivitySection() {
   };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, {backgroundColor: THEME_COLORS.cardBg, borderColor: THEME_COLORS.cardBorder}]}>
       <View style={styles.cardHeader}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <Text style={[styles.sectionTitle, {color: THEME_COLORS.textPrimary}]}>Recent Activity</Text>
       </View>
       
       {isLoading && !hasActivities ? (
-        <ActivityIndicator color="#6C63FF" size="small" style={styles.loader} />
+        <ActivityIndicator color={THEME_COLORS.accent} size="small" style={styles.loader} />
       ) : isError ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>Failed to load activity feed</Text>
+          <Text style={[styles.emptyText, {color: THEME_COLORS.textSecondary}]}>Failed to load activity feed</Text>
         </View>
       ) : !hasActivities ? (
         <View style={styles.emptyState}>
-          <Text style={[styles.emptyText, { marginVertical: 10 }]}>No activity recorded for today yet</Text>
+          <Text style={[styles.emptyText, {color: THEME_COLORS.textSecondary, marginVertical: 10}]}>No activity recorded for today yet</Text>
         </View>
       ) : (
         <View style={styles.activityList}>
@@ -89,6 +84,7 @@ export default function ActivitySection() {
               description={item.description}
               duration={item.metadata?.duration}
               isLast={index === activities.length - 1}
+              COLORS={THEME_COLORS}
             />
           ))}
         </View>
@@ -99,7 +95,6 @@ export default function ActivitySection() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -107,6 +102,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
+    borderWidth: 1,
   },
   loader: {
     marginVertical: 12,
@@ -114,7 +110,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -129,7 +124,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 13,
-    color: '#94A3B8',
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -155,7 +149,6 @@ const styles = StyleSheet.create({
   timelineLine: {
     flex: 1,
     width: 2,
-    backgroundColor: '#F1F5F9',
     position: 'absolute',
     top: 16,
     bottom: 0,
@@ -173,16 +166,13 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
   },
   activityTime: {
     fontSize: 11,
-    color: '#94A3B8',
     fontWeight: '600',
   },
   activityDesc: {
     fontSize: 13,
-    color: '#64748B',
     fontWeight: '500',
     lineHeight: 18,
   },

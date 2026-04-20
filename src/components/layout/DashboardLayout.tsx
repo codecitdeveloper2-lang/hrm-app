@@ -1,3 +1,4 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React, { useState } from 'react';
 import { View, StyleSheet, StatusBar, useWindowDimensions, TouchableWithoutFeedback, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +28,8 @@ export default function DashboardLayout({
   activeMenu,
   onMenuSelect
 }: DashboardLayoutProps) {
+  const { colors: THEME_COLORS, isDarkMode } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -43,8 +46,12 @@ export default function DashboardLayout({
   };
 
   return (
-    <View style={[styles.container, { paddingTop: isMobile ? insets.top : 0 }]}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.bgDark} />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar 
+        barStyle={isDarkMode ? "light-content" : "dark-content"} 
+        backgroundColor={THEME_COLORS.bgDark}
+        translucent={Platform.OS === 'ios'}
+      />
       <View style={styles.horizontalWrapper}>
         {/* Sidebar */}
         <Sidebar
@@ -79,7 +86,7 @@ export default function DashboardLayout({
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bgDark,

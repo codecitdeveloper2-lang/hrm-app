@@ -1,3 +1,4 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, ActivityIndicator, RefreshControl } from 'react-native';
 import { COLORS, globalStyles } from '../../styles';
@@ -9,18 +10,23 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 
 export default function SchedulePage() {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isResponsive = width < 1024;
 
   const user = useSelector((state: RootState) => state.auth.user);
-  const [weekOffset, setWeekOffset] = useState(0);
 
-  const formatDateKey = (date: Date) => {
+  function formatDateKey(date: Date) {
     const d = new Date(date);
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().split('T')[0];
-  };
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  const [selectedDateKey, setSelectedDateKey] = useState(formatDateKey(new Date()));
 
   const formatTime = (time: string) => {
     if (!time) return "N/A";
@@ -37,13 +43,17 @@ export default function SchedulePage() {
   const weeklyOff = workingHours?.weeklyOff || ["Saturday", "Sunday"];
 
   const { weekStart, weekEnd, weekStartObj } = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now);
-    // Get Monday of current week
-    const currentDay = now.getDay();
-    const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1) + (weekOffset * 7);
-    start.setDate(diff);
+    const activeDate = new Date(selectedDateKey);
+    const getMonday = (d: Date) => {
+      const res = new Date(d);
+      const day = res.getDay();
+      const diff = res.getDate() - day + (day === 0 ? -6 : 1);
+      res.setDate(diff);
+      res.setHours(0, 0, 0, 0);
+      return res;
+    };
 
+    const start = getMonday(activeDate);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
 
@@ -52,7 +62,7 @@ export default function SchedulePage() {
       weekEnd: formatDateKey(end),
       weekStartObj: start
     };
-  }, [weekOffset]);
+  }, [selectedDateKey]);
 
   const { data: leavesResp, refetch: refetchLeaves } = useGetMyLeavesQuery({
     status: 'approved',
@@ -134,6 +144,7 @@ export default function SchedulePage() {
         day: dayName,
         shortDay: day.toLocaleDateString("en-US", { weekday: "short" }),
         date: day.getDate(),
+        fullDateKey: dayKey,
         shift: shiftDisplay,
         type: shiftType,
         isToday,
@@ -145,13 +156,21 @@ export default function SchedulePage() {
     return days;
   }, [weekStartObj, approvedLeaves, rosterData, startTime, endTime, weeklyOff]);
 
+  const activeShift = useMemo(() => {
+    return shifts.find(s => s.fullDateKey === selectedDateKey) || shifts.find(s => s.isToday) || shifts[0];
+  }, [shifts, selectedDateKey]);
+
   const getWeekRange = () => {
     const end = new Date(weekStartObj);
     end.setDate(weekStartObj.getDate() + 6);
     return `${weekStartObj.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   };
 
-  const todayShift = shifts.find(s => s.isToday);
+  const handleWeekChange = (direction: number) => {
+    const currentSelected = new Date(selectedDateKey);
+    currentSelected.setDate(currentSelected.getDate() + (direction * 7));
+    setSelectedDateKey(formatDateKey(currentSelected));
+  };
 
   return (
     <View style={globalStyles.screenContainer}>
@@ -167,13 +186,13 @@ export default function SchedulePage() {
         {/* Top Controls - Navigation & Range */}
         <View style={styles.topControls}>
           <View style={styles.navControls}>
-            <TouchableOpacity onPress={() => setWeekOffset(weekOffset - 1)} style={styles.navBtn}>
+            <TouchableOpacity onPress={() => handleWeekChange(-1)} style={styles.navBtn}>
               <Text style={styles.navBtnText}>←</Text>
             </TouchableOpacity>
             <View style={styles.weekDisplay}>
               <Text style={styles.weekRangeText}>{getWeekRange()}</Text>
             </View>
-            <TouchableOpacity onPress={() => setWeekOffset(weekOffset + 1)} style={styles.navBtn}>
+            <TouchableOpacity onPress={() => handleWeekChange(1)} style={styles.navBtn}>
               <Text style={styles.navBtnText}>→</Text>
             </TouchableOpacity>
           </View>
@@ -182,38 +201,36 @@ export default function SchedulePage() {
           </TouchableOpacity>
         </View>
 
-        {/* Today Highlight Section */}
+        {/* Highlight Card Section */}
         <View style={[
           styles.todayCard,
-          todayShift?.type === 'Holiday' ? styles.holidayCard :
-            todayShift?.type === 'Leave' ? styles.leaveCard :
+          activeShift?.type === 'Holiday' ? styles.holidayCard :
+            activeShift?.type === 'Leave' ? styles.leaveCard :
               styles.regularCard
         ]}>
           <View style={styles.todayHeader}>
             <View>
               <Text style={styles.todayLabel}>
-                {todayShift?.type === 'Holiday' ? 'PUBLIC HOLIDAY' :
-                  todayShift?.type === 'Leave' ? "TODAY'S STATUS" : "TODAY'S SHIFT"}
+                {activeShift?.isToday ? (
+                  activeShift?.type === 'Holiday' ? 'PUBLIC HOLIDAY' :
+                  activeShift?.type === 'Leave' ? "TODAY'S STATUS" : "TODAY'S SHIFT"
+                ) : (
+                  `${activeShift?.day.toUpperCase()}'S SHIFT`
+                )}
               </Text>
               <Text style={styles.todayShiftValue}>
-                {todayShift?.holiday || (todayShift?.type === 'Leave' ? `On Leave (${todayShift.leave.leaveType})` : todayShift?.shift)}
+                {activeShift?.holiday || (activeShift?.type === 'Leave' ? `On Leave (${activeShift.leave.leaveType})` : activeShift?.shift)}
               </Text>
             </View>
             <View style={styles.todayIconContainer}>
               <Text style={styles.todayIcon}>
-                {todayShift?.type === 'Holiday' ? '☀️' : todayShift?.type === 'Leave' ? '🏖️' : '⏱️'}
+                {activeShift?.type === 'Holiday' ? '☀️' : activeShift?.type === 'Leave' ? '🏖️' : '⏱️'}
               </Text>
             </View>
           </View>
 
-          {/* {todayShift?.type === 'Regular' && (
-            <View style={styles.timeTagRow}>
-              <View style={styles.timeTag}><Text style={styles.timeTagText}>Starts: {formatTime(startTime)}</Text></View>
-              <View style={styles.timeTag}><Text style={styles.timeTagText}>Ends: {formatTime(endTime)}</Text></View>
-            </View>
-          )} */}
-          {todayShift?.type === 'Leave' && todayShift?.leave?.reason && (
-            <Text style={styles.leaveReasonText} numberOfLines={1}>"{todayShift.leave.reason}"</Text>
+          {activeShift?.type === 'Leave' && activeShift?.leave?.reason && (
+            <Text style={styles.leaveReasonText} numberOfLines={1}>"{activeShift.leave.reason}"</Text>
           )}
         </View>
 
@@ -223,20 +240,26 @@ export default function SchedulePage() {
             <Text style={styles.sectionTitle}>Weekly Schedule</Text>
             <View style={styles.shiftList}>
               {shifts.map((item, index) => (
-                <View key={index} style={[
-                  styles.shiftItem,
-                  item.isToday && styles.todayItem,
-                  (item.isWeekend && !item.isToday) && styles.offDayItem
-                ]}>
+                <TouchableOpacity 
+                  key={index}
+                  onPress={() => setSelectedDateKey(item.fullDateKey)}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.shiftItem,
+                    item.fullDateKey === selectedDateKey && styles.activeItem,
+                    item.isToday && styles.todayItem,
+                    (item.isWeekend && !item.isToday && item.fullDateKey !== selectedDateKey) && styles.offDayItem
+                  ]}
+                >
                   <View style={[
                     styles.dayBadge,
-                    item.isToday && { backgroundColor: COLORS.accent },
+                    (item.isToday || item.fullDateKey === selectedDateKey) && { backgroundColor: COLORS.accent },
                     item.type === 'Holiday' && { backgroundColor: COLORS.warning },
                     item.type === 'Leave' && { backgroundColor: COLORS.error },
-                    (item.isWeekend && !item.isToday) && { backgroundColor: 'rgba(255,255,255,0.05)' }
+                    (item.isWeekend && !item.isToday && item.fullDateKey !== selectedDateKey) && { backgroundColor: 'rgba(255,255,255,0.05)' }
                   ]}>
-                    <Text style={[styles.dayText, (item.isToday || item.type === 'Holiday' || item.type === 'Leave') && { color: '#FFF' }]}>{item.shortDay}</Text>
-                    <Text style={[styles.dateText, (item.isToday || item.type === 'Holiday' || item.type === 'Leave') && { color: '#FFF' }]}>{item.date}</Text>
+                    <Text style={[styles.dayText, (item.isToday || item.fullDateKey === selectedDateKey || item.type === 'Holiday' || item.type === 'Leave') && { color: '#FFF' }]}>{item.shortDay}</Text>
+                    <Text style={[styles.dateText, (item.isToday || item.fullDateKey === selectedDateKey || item.type === 'Holiday' || item.type === 'Leave') && { color: '#FFF' }]}>{item.date}</Text>
                   </View>
                   <View style={styles.shiftInfo}>
                     <View style={styles.shiftInfoHeader}>
@@ -247,13 +270,13 @@ export default function SchedulePage() {
                       styles.shiftTimeText,
                       item.type === 'Holiday' ? { color: COLORS.warning } :
                         item.type === 'Leave' ? { color: COLORS.error } :
-                          (item.isWeekend && !item.isToday) ? { color: '#94A3B8' } :
+                          (item.isWeekend && !item.isToday && item.fullDateKey !== selectedDateKey) ? { color: '#94A3B8' } :
                             { color: COLORS.accentLight }
                     ]}>
                       {item.shift}
                     </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -290,7 +313,7 @@ export default function SchedulePage() {
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
   topControls: {
@@ -300,35 +323,37 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   refreshBtn: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: COLORS.cardBg,
     width: 38,
     height: 38,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: COLORS.cardBorder,
   },
-  refreshIcon: { fontSize: 16 },
+  refreshIcon: { fontSize: 16, color: COLORS.textPrimary },
   navControls: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   navBtn: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.cardBg,
     width: 36,
     height: 36,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
-  navBtnText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
+  navBtnText: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '700' },
   weekDisplay: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: COLORS.cardBg,
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: COLORS.cardBorder,
   },
-  weekRangeText: { color: COLORS.accentLight, fontWeight: '800', fontSize: 11 },
+  weekRangeText: { color: COLORS.accent, fontWeight: '800', fontSize: 11 },
 
   todayCard: {
     borderRadius: 24,
@@ -350,7 +375,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 20,
   },
-  todayLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+  todayLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
   todayShiftValue: { color: '#FFF', fontSize: 26, fontWeight: '800', marginTop: 4 },
   todayIconContainer: {
     width: 54,
@@ -360,7 +385,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  todayIcon: { fontSize: 28 },
+  todayIcon: { fontSize: 28, color: '#FFF' },
 
   timeTagRow: { flexDirection: 'row', gap: 12 },
   timeTag: {
@@ -372,27 +397,31 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   timeTagText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
-  leaveReasonText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontStyle: 'italic' },
+  leaveReasonText: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontStyle: 'italic' },
 
   mainGrid: { flexDirection: 'row', gap: 24 },
   columnLayout: { flexDirection: 'column' },
   scheduleListContainer: { flex: 2 },
   summaryContainer: { flex: 1 },
 
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#FFF', marginBottom: 18 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 18 },
   shiftList: { gap: 12 },
   shiftItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 20,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.cardBorder,
+  },
+  activeItem: {
+    backgroundColor: COLORS.accentGlow,
+    borderColor: COLORS.accent,
   },
   todayItem: {
-    backgroundColor: 'rgba(45, 92, 255, 0.08)',
-    borderColor: 'rgba(45, 92, 255, 0.3)',
+    backgroundColor: COLORS.accentGlow,
+    borderColor: COLORS.accent,
     borderWidth: 2,
   },
   offDayItem: { opacity: 0.7 },
@@ -400,30 +429,30 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
-  dayText: { fontSize: 10, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' },
-  dateText: { fontSize: 18, fontWeight: '800', color: '#FFF' },
+  dayText: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, textTransform: 'uppercase' },
+  dateText: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
   shiftInfo: { flex: 1 },
   shiftInfoHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  dayFull: { fontSize: 15, fontWeight: '700', color: '#FFF' },
-  todayBadge: { backgroundColor: 'rgba(45, 92, 255, 0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  dayFull: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  todayBadge: { backgroundColor: COLORS.accentGlow, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   todayBadgeText: { color: COLORS.accent, fontSize: 10, fontWeight: '800' },
   shiftTimeText: { fontSize: 13, fontWeight: '600' },
 
   summaryCard: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.cardBorder,
   },
   summaryItem: { paddingVertical: 12 },
-  summaryLabel: { color: '#94A3B8', fontSize: 12, fontWeight: '600', marginBottom: 6 },
-  summaryValue: { color: '#FFF', fontSize: 15, fontWeight: '700' },
-  summaryValueSmall: { color: '#FFF', fontSize: 13, fontWeight: '700' },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)' },
+  summaryLabel: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  summaryValue: { color: COLORS.textPrimary, fontSize: 15, fontWeight: '700' },
+  summaryValueSmall: { color: COLORS.textPrimary, fontSize: 13, fontWeight: '700' },
+  divider: { height: 1, backgroundColor: COLORS.cardBorder },
 });

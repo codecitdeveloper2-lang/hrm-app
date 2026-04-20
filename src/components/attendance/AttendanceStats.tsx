@@ -1,3 +1,4 @@
+import { useTheme } from '../../styles/ThemeProvider';
 import React from 'react';
 import {View, Text, StyleSheet, Dimensions} from 'react-native';
 import {COLORS, SPACING, BORDER_RADIUS} from '../../styles';
@@ -7,9 +8,10 @@ interface StatItemProps {
   value: string;
   icon: string;
   color: string;
+  styles: any;
 }
 
-const StatItem = ({label, value, icon, color}: StatItemProps) => (
+const StatItem = ({label, value, icon, color, styles}: StatItemProps) => (
   <View style={[styles.statItem, {borderColor: color + '30'}]}>
     <View style={[styles.iconContainer, {backgroundColor: color + '15'}]}>
       <Text style={styles.icon}>{icon}</Text>
@@ -22,37 +24,43 @@ const StatItem = ({label, value, icon, color}: StatItemProps) => (
 );
 
 export default function AttendanceStats() {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   return (
     <View style={styles.container}>
       <StatItem 
         label="Present" 
         value="18 Days" 
         icon="✅" 
-        color={COLORS.success} 
+        color={THEME_COLORS.success} 
+        styles={styles}
       />
       <StatItem 
         label="Late" 
         value="2 Days" 
         icon="🕒" 
-        color={COLORS.warning} 
+        color={THEME_COLORS.warning} 
+        styles={styles}
       />
       <StatItem 
         label="Absent" 
         value="1 Day" 
         icon="❌" 
-        color={COLORS.error} 
+        color={THEME_COLORS.error} 
+        styles={styles}
       />
       <StatItem 
         label="Avg Hours" 
         value="8.5h" 
         icon="📊" 
-        color={COLORS.info} 
+        color={THEME_COLORS.info} 
+        styles={styles}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',

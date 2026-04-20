@@ -8,8 +8,12 @@ import {
   useBreakResumeMutation,
   useCheckCorrectionQuery
 } from '../../store/api/apiSlice';
+import {COLORS} from '../../styles';
+import { useTheme } from '../../styles/ThemeProvider';
 
 export default function StatusCard() {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const [currentTime, setCurrentTime] = useState(new Date());
   const { width } = useWindowDimensions();
   const isMobile = width < 700;
@@ -111,7 +115,7 @@ export default function StatusCard() {
     return (
       <View style={[styles.card, styles.cardInactive, isMobile && styles.cardMobile]}>
         <View style={styles.inactiveContent}>
-          <Text style={styles.sessionLabel}>NOT CLOCKED IN</Text>
+          <Text style={[styles.sessionLabel, { color: THEME_COLORS.textSecondary }]}>NOT CLOCKED IN</Text>
           <Text style={styles.inactiveTime}>{formatCurrentTime(currentTime)}</Text>
         </View>
         <TouchableOpacity
@@ -207,13 +211,13 @@ export default function StatusCard() {
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: {
     width: '100%',
     marginBottom: 20,
   },
   card: {
-    backgroundColor: '#2D5CFF',
+    backgroundColor: COLORS.accent,
     borderRadius: 16,
     paddingVertical: 28,
     paddingHorizontal: 28,
@@ -221,7 +225,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#2D5CFF',
+    shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -234,8 +238,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   cardInactive: {
-    backgroundColor: '#3B4A6B',
+    backgroundColor: COLORS.bgMid,
     shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   loadingCard: {
     justifyContent: 'center',
@@ -290,7 +296,8 @@ const styles = StyleSheet.create({
   sessionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.65)',
+    color: COLORS.white,
+    opacity: 0.7,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 6,
@@ -321,7 +328,7 @@ const styles = StyleSheet.create({
   inactiveTime: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: COLORS.textPrimary,
     marginTop: 4,
   },
 
@@ -392,11 +399,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   clockInBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderRadius: 10,
     marginTop: 4,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   clockInBtnMobile: {
     alignSelf: 'stretch',
@@ -406,17 +415,17 @@ const styles = StyleSheet.create({
   clockInBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#2D5CFF',
+    color: COLORS.accent,
   },
   // Correction banner
   correctionBanner: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: COLORS.error + '22', // translucent error background
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: COLORS.error,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#EF4444',
+    shadowColor: COLORS.error,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -425,17 +434,17 @@ const styles = StyleSheet.create({
   correctionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#991B1B',
+    color: COLORS.error,
     marginBottom: 4,
   },
   correctionText: {
     fontSize: 13,
-    color: '#B91C1C',
+    color: COLORS.error,
     lineHeight: 18,
     marginBottom: 12,
   },
   correctionAction: {
-    backgroundColor: '#EF4444',
+    backgroundColor: COLORS.error,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,

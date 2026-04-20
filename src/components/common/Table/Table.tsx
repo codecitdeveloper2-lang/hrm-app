@@ -1,3 +1,4 @@
+import { useTheme } from '../../../styles/ThemeProvider';
 import React from 'react';
 import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import {COLORS} from '../../../styles';
@@ -15,6 +16,8 @@ interface TableProps {
 }
 
 export default function Table({columns, data, emptyMessage = 'No data available'}: TableProps) {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       <View>
@@ -48,10 +51,10 @@ export default function Table({columns, data, emptyMessage = 'No data available'
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(108, 99, 255, 0.1)',
+    backgroundColor: COLORS.accentGlow,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 8,
@@ -61,10 +64,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.04)',
+    borderBottomColor: COLORS.cardBorder,
   },
   evenRow: {
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    backgroundColor: COLORS.inputBg,
   },
   cell: {
     paddingHorizontal: 8,
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.accentLight,
+    color: Object.keys(COLORS).length > 0 && COLORS.accent !== COLORS.accentLight ? COLORS.accentLight : COLORS.accent,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },

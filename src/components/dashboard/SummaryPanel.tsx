@@ -1,8 +1,10 @@
 import React from 'react';
 import {View, Text, StyleSheet, useWindowDimensions} from 'react-native';
 import { useGetClockInStatusQuery } from '../../store/api/apiSlice';
+import { useTheme } from '../../styles/ThemeProvider';
 
 export default function SummaryPanel() {
+  const { colors: THEME_COLORS } = useTheme();
   const { width } = useWindowDimensions();
   const isMobile = width < 1024;
   const { data: statusData } = useGetClockInStatusQuery(undefined);
@@ -12,36 +14,36 @@ export default function SummaryPanel() {
 
   return (
     <View style={[styles.container, isMobile && styles.containerMobile]}>
-      <View style={styles.summaryCard}>
-        <Text style={styles.cardTitle}>Quick Summary</Text>
+      <View style={[styles.summaryCard, {backgroundColor: THEME_COLORS.cardBg, borderColor: THEME_COLORS.cardBorder}]}>
+        <Text style={[styles.cardTitle, {color: THEME_COLORS.textPrimary}]}>Quick Summary</Text>
 
         {/* Shift Type */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Shift Type</Text>
+          <Text style={[styles.sectionTitle, {color: THEME_COLORS.textSecondary}]}>Shift Type</Text>
           <View style={styles.shiftRow}>
-            <Text style={styles.sectionValue}>Morning Session</Text>
-            <View style={styles.activeDot} />
+            <Text style={[styles.sectionValue, {color: THEME_COLORS.textPrimary}]}>Morning Session</Text>
+            <View style={[styles.activeDot, {backgroundColor: THEME_COLORS.success}]} />
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, {backgroundColor: THEME_COLORS.cardBorder}]} />
 
         {/* Weekly Off */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Weekly Off</Text>
-          <Text style={styles.sectionValue}>Saturday, Sunday</Text>
+          <Text style={[styles.sectionTitle, {color: THEME_COLORS.textSecondary}]}>Weekly Off</Text>
+          <Text style={[styles.sectionValue, {color: THEME_COLORS.textPrimary}]}>Saturday, Sunday</Text>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, {backgroundColor: THEME_COLORS.cardBorder}]} />
 
         {/* Monthly Attendance */}
         <View style={styles.section}>
           <View style={styles.progressHeader}>
-            <Text style={styles.sectionTitle}>Monthly Attendance</Text>
-            <Text style={styles.percentageText}>{monthlyPercentage.toFixed(2)}%</Text>
+            <Text style={[styles.sectionTitle, {color: THEME_COLORS.textSecondary}]}>Monthly Attendance</Text>
+            <Text style={[styles.percentageText, {color: THEME_COLORS.accent}]}>{monthlyPercentage.toFixed(2)}%</Text>
           </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${clampedPct}%` }]} />
+          <View style={[styles.progressTrack, {backgroundColor: THEME_COLORS.inputBg}]}>
+            <View style={[styles.progressFill, { width: `${clampedPct}%`, backgroundColor: THEME_COLORS.accent }]} />
           </View>
         </View>
       </View>
@@ -60,7 +62,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
     shadowColor: '#000',
@@ -68,11 +69,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
+    borderWidth: 1,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
     marginBottom: 20,
   },
   section: {
@@ -80,14 +81,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    color: '#94A3B8',
     fontWeight: '600',
     letterSpacing: 0.3,
     marginBottom: 6,
   },
   sectionValue: {
     fontSize: 15,
-    color: '#1E293B',
     fontWeight: '700',
   },
   shiftRow: {
@@ -99,11 +98,9 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10B981',
   },
   divider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
     marginVertical: 18,
   },
   progressHeader: {
@@ -115,17 +112,14 @@ const styles = StyleSheet.create({
   percentageText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2D5CFF',
   },
   progressTrack: {
     height: 6,
-    backgroundColor: '#F1F5F9',
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: 6,
-    backgroundColor: '#2D5CFF',
     borderRadius: 3,
     minWidth: 4,
   },

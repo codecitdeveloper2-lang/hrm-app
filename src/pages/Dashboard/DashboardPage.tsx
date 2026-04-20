@@ -21,7 +21,7 @@ export default function DashboardPage() {
       value: d?.totalDurationString ?? '0S',
       subtext: '+12% from yesterday',
       subtextColor: '#10B981',
-      accentColor: '#6C63FF',
+      accentColor: '#6366F1', // Premium Indigo
       icon: '🕐',
     },
     {
@@ -29,13 +29,13 @@ export default function DashboardPage() {
       value: `${d?.totalBreakCount ?? 0} Sessions`,
       subtext: '+2 more than yesterday',
       subtextColor: '#F59E0B',
-      accentColor: '#4ECDC4',
+      accentColor: '#10B981', // Success Green
       icon: '☕',
     },
     {
       title: 'Break Duration',
       value: d?.totalBreakDurationString ?? '0S',
-      accentColor: '#FFE66D',
+      accentColor: '#F59E0B', // Warning Amber
       icon: '🛌',
     },
     {
@@ -43,7 +43,7 @@ export default function DashboardPage() {
       value: `${d?.monthlyAttendancePercentage ?? 0}%`,
       subtext: '+3% from last week',
       subtextColor: '#10B981',
-      accentColor: '#4DA8DA',
+      accentColor: '#3B82F6', // Info Blue
       icon: '📈',
     },
   ];

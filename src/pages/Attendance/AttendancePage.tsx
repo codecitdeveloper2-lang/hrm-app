@@ -1,16 +1,16 @@
-import React, {useState} from 'react';
-import {View, Text, StyleSheet, ScrollView, useWindowDimensions, TextInput, TouchableOpacity, Alert} from 'react-native';
-import {COLORS} from '../../styles';
+import { useTheme } from '../../styles/ThemeProvider';
+import React from 'react';
+import {View, Text, StyleSheet, ScrollView, useWindowDimensions} from 'react-native';
 import StatusCard from '../../components/dashboard/StatusCard';
 import StatCard from '../../components/dashboard/StatCard';
-import Button from '../../components/common/Button';
 import { 
   useGetClockInStatusQuery, 
 } from '../../store/api/apiSlice';
 import CorrectionModal from '../../components/attendance/CorrectionModal';
-import AttendanceStats from '../../components/attendance/AttendanceStats';
 
 export default function AttendancePage() {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isResponsive = width < 1024;
@@ -37,13 +37,10 @@ export default function AttendancePage() {
     ? new Date(d.currentSession.checkIn.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
     : '-';
   const sessionDuration = d?.currentSession?.durationString ?? '0h 0m';
-  const totalDuration = d?.totalDurationString ?? '0h 0m';
   const totalBreakCount = d?.totalBreakCount ?? 0;
   const totalBreakDuration = d?.totalBreakDurationString ?? '0S';
   const monthlyPresentDays = d?.monthlyPresentDays ?? 0;
-  const monthlyWorkingDays = d?.monthlyWorkingDaysSoFar ?? 0;
-  const monthlyTarget = d?.monthlyTargetHours ?? 209;
-  const monthlyPercentage = d?.monthlyAttendancePercentage ?? 14.29;
+  const monthlyPercentage = d?.monthlyAttendancePercentage ?? 0;
 
   const ATTENDANCE_STATS = [
     {
@@ -122,12 +119,12 @@ export default function AttendancePage() {
             <View style={styles.divider} />
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Net Working Time</Text>
-              <Text style={[styles.detailValue, {color: '#3B82F6'}]}>{d?.netDurationString ?? '0h 0m'}</Text>
+              <Text style={[styles.detailValue, {color: THEME_COLORS.info}]}>{d?.netDurationString ?? '0h 0m'}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Break Duration</Text>
-              <Text style={[styles.detailValue, {color: '#F59E0B'}]}>{totalBreakDuration} ({totalBreakCount})</Text>
+              <Text style={[styles.detailValue, {color: THEME_COLORS.warning}]}>{totalBreakDuration} ({totalBreakCount})</Text>
             </View>
           </View>
         </View>
@@ -142,9 +139,9 @@ export default function AttendancePage() {
              </View>
             {[
               {day: 'Mon', date: todayShortDate, time: d?.netDurationString ?? '0h 0m', active: true},
-              {day: 'Tue', date: 'Mar 31', time: '-', active: false},
+              {day: 'Tue', date: '-', time: '-', active: false},
             ].map((item, index, arr) => (
-              <React.Fragment key={item.day}>
+              <React.Fragment key={index}>
                 <View style={styles.weekItem}>
                   <View style={styles.weekItemLeft}>
                     <View style={[styles.dayCircle, item.active && styles.dayCircleActive]}>
@@ -180,7 +177,7 @@ export default function AttendancePage() {
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -196,11 +193,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#E2E8F0',
+    color: COLORS.textPrimary,
   },
   headerDate: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     fontWeight: '500',
   },
   statsRow: {
@@ -223,18 +220,15 @@ const styles = StyleSheet.create({
   summarySection: {
     flex: 2,
   },
-  correctionSection: {
-    marginTop: 32,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: COLORS.textPrimary,
     marginBottom: 16,
     letterSpacing: 0.3,
   },
   detailsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 20,
     padding: 24,
     shadowColor: '#000',
@@ -242,6 +236,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   detailRow: {
     flexDirection: 'row',
@@ -251,16 +247,16 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     fontWeight: '600',
   },
   detailValue: {
     fontSize: 15,
-    color: '#1E293B',
+    color: COLORS.textPrimary,
     fontWeight: '700',
   },
   statusBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.inputBg,
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -271,14 +267,14 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: COLORS.textSecondary,
   },
   statusBadgeTextActive: {
     color: '#166534',
   },
   divider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.cardBorder,
     marginVertical: 12,
   },
   summaryHeader: {
@@ -289,7 +285,7 @@ const styles = StyleSheet.create({
   summaryHeaderText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: COLORS.textMuted,
     letterSpacing: 0.5,
   },
   weekItem: {
@@ -307,17 +303,17 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dayCircleActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: COLORS.accent,
   },
   dayInitial: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
   },
   dayInitialActive: {
     color: '#FFFFFF',
@@ -325,23 +321,16 @@ const styles = StyleSheet.create({
   dayName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: COLORS.textPrimary,
   },
   dayDate: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   weekTime: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: COLORS.textPrimary,
   },
-  emptyText: {
-    textAlign: 'center',
-    color: '#94A3B8',
-    fontSize: 14,
-    paddingVertical: 20,
-  },
-
 });

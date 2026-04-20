@@ -1,3 +1,4 @@
+import { useTheme } from '../../../styles/ThemeProvider';
 import React from 'react';
 import {View, Modal as RNModal, StyleSheet, TouchableOpacity, Text} from 'react-native';
 import {COLORS, BORDER_RADIUS} from '../../../styles';
@@ -10,6 +11,8 @@ interface ModalProps {
 }
 
 export default function Modal({visible, onClose, title, children}: ModalProps) {
+  const { colors: THEME_COLORS } = useTheme();
+  const styles = _getStyles(THEME_COLORS);
   return (
     <RNModal
       visible={visible}
@@ -31,7 +34,7 @@ export default function Modal({visible, onClose, title, children}: ModalProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const _getStyles = (COLORS: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -56,13 +59,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.textPrimary,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: COLORS.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
   },
