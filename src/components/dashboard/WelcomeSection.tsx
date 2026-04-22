@@ -2,10 +2,15 @@ import { useTheme } from '../../styles/ThemeProvider';
 import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import {COLORS} from '../../styles';
+import { useAppSelector } from '../../store';
 
 export default function WelcomeSection() {
   const { colors: THEME_COLORS } = useTheme();
+  const { user } = useAppSelector(state => state.auth);
   const styles = _getStyles(THEME_COLORS);
+  
+  const firstName = user?.name?.split(' ')[0] || 'User';
+
   const currentDate = new Date().toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -15,7 +20,7 @@ export default function WelcomeSection() {
   return (
     <View style={styles.container}>
       <View style={styles.leftSide}>
-        <Text style={styles.heading}>Welcome back, John!</Text>
+        <Text style={styles.heading}>Welcome back, {firstName}!</Text>
         <Text style={styles.subtext}>Here’s what’s happening with your work today</Text>
       </View>
       

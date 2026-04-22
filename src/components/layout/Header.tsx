@@ -4,9 +4,19 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, TouchableWithoutFeedba
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../styles';
 import SettingsOverlay from './SettingsOverlay';
-import { useAppDispatch } from '../../store';
+import { useAppDispatch, useAppSelector } from '../../store';
 import { logout } from '../../store/slices/authSlice';
 import { apiSlice } from '../../store/api/apiSlice';
+
+const getInitials = (name: string) => {
+  if (!name) return '??';
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
+};
 
 interface HeaderProps {
   title: string;
@@ -24,6 +34,13 @@ export default function Header({ title, subtitle, onMenuPress, onProfilePress, s
   const [showSettings, setShowSettings] = useState(false);
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
+  const { user } = useAppSelector(state => state.auth);
+
+  const userDisplayName = user?.name || 'User';
+  const userRole = user?.designation || 'Team Member';
+  const userEmail = user?.email || 'user@example.com';
+  const tidyEmail = userEmail.split('@')[0];
+  const userInitials = getInitials(userDisplayName);
 
   const handleLogout = () => {
     setShowDropdown(false);
@@ -67,11 +84,11 @@ export default function Header({ title, subtitle, onMenuPress, onProfilePress, s
           hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
         >
           <View style={styles.userInfo}>
-            <Text style={[styles.userName, {color: THEME_COLORS.textPrimary}]}>John Doe</Text>
-            <Text style={[styles.userRole, {color: THEME_COLORS.textSecondary}]}>Developer</Text>
+            <Text style={[styles.userName, {color: THEME_COLORS.textPrimary}]}>{userDisplayName}</Text>
+            <Text style={[styles.userRole, {color: THEME_COLORS.textSecondary}]}>{tidyEmail}</Text>
           </View>
           <View style={[styles.avatar, {backgroundColor: THEME_COLORS.accent, borderColor: THEME_COLORS.cardBorder}]}>
-            <Text style={[styles.avatarText, {color: '#FFFFFF'}]}>JD</Text>
+            <Text style={[styles.avatarText, {color: '#FFFFFF'}]}>{userInitials}</Text>
           </View>
           <Text style={[styles.chevron, {color: THEME_COLORS.textMuted}]}>{showDropdown ? '▴' : '▾'}</Text>
         </TouchableOpacity>
@@ -99,12 +116,12 @@ export default function Header({ title, subtitle, onMenuPress, onProfilePress, s
             ]}>
               <View style={styles.dropdownHeader}>
                 <View style={[styles.dropdownAvatar, {backgroundColor: THEME_COLORS.accent}]}>
-                  <Text style={[styles.dropdownAvatarText, {color: '#FFFFFF'}]}>JD</Text>
+                  <Text style={[styles.dropdownAvatarText, {color: '#FFFFFF'}]}>{userInitials}</Text>
                 </View>
                 <View style={styles.dropdownUserInfo}>
-                  <Text style={[styles.dropdownUserName, {color: THEME_COLORS.textPrimary}]}>John Doe</Text>
+                  <Text style={[styles.dropdownUserName, {color: THEME_COLORS.textPrimary}]}>{userDisplayName}</Text>
                   <Text style={[styles.dropdownUserEmail, {color: THEME_COLORS.textSecondary}]} numberOfLines={1}>
-                    john.doe@example.com
+                    {userEmail}
                   </Text>
                 </View>
               </View>
